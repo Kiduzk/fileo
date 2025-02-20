@@ -1,10 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
-	"strings"
 
 	"github.com/urfave/cli/v2"
 )
@@ -13,12 +11,17 @@ func main() {
   app := &cli.App{
     Flags: []cli.Flag{
       &cli.StringFlag{
-        Name: "output",
-        Usage: "The path for the output directory",
+        Name: "pattern",
+        Usage: "Pattern to match with file name, supports regex.",
       },
+      &cli.StringFlag{
+        Name: "output",
+        Usage: "The directory of output files",
+      },
+
     },
     Name: "FileOrganizer",
-    Usage: "Organize files",
+    Usage: "Organizes files nicely",
     Action: cliActionHandler,
   }
   if err := app.Run(os.Args); err != nil {
@@ -30,35 +33,17 @@ func main() {
 func cliActionHandler(cCtx *cli.Context) error {
   if cCtx.NArg() > 0 {
     pattern := cCtx.Args().Get(0)
-    organizeFilesByPattern(pattern, "/cool")
+    OrganizeFilesByPattern(pattern, "/cool")
   }
 
-  if cCtx.String("pattern") != "" {
-    fmt.Println("pattern here")
+  // Get some of the cli arguments
+  pattern := cCtx.String("pattern")
+  outputPath := cCtx.String("output")
+
+  if pattern != "" {
+    OrganizeFilesByPattern(pattern, outputPath)
   }
   
   return nil
 }
 
-func organizeFilesByPattern(pattern, outputPath string) error {
-  dir, err := os.Getwd()
-  HandleError(err)
-
-  files, err := os.ReadDir(dir)
-  HandleError(err)
-
-  for _, file := range files {
-    if strings.Contains(file.Name(), pattern) {
-      fmt.Println("Copying", file, "into", outputPath)
-    }
-  }
-
-  
-  return nil
-}
-
-func HandleError(err error) {
-  if err != nil {
-    log.Fatal(err)
-  }
-}
