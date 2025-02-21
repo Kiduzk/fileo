@@ -8,11 +8,12 @@ import (
 	"regexp"
 )
 
+
 // TODO: add option for recursive file search
 // This functin organizes file using the name pattern
-// INPUT: pattern -> the pattern we want to match, using regex
+// INPUT: pattern -> the regex pattern we want to match
 //      : outputPath -> the path of where we want the new files to be at
-func OrganizeFilesByPattern(pattern, outputPath string) error {
+func OrganizeFilesByRegex(regexPattern, outputPath string,) error {
   dir, err := os.Getwd()
   HandleError(err)
 
@@ -22,16 +23,19 @@ func OrganizeFilesByPattern(pattern, outputPath string) error {
   for _, file := range files {
 
     // Match the file names with the pattern 
-    r, _ := regexp.MatchString(pattern, file.Name())
+    r, _ := regexp.MatchString(regexPattern, file.Name())
 
     if r {
-      fmt.Println("Copying", file, "into", outputPath)
       copyFile(file.Name(), outputPath, file.Name())
     }
   }
 
-  
   return nil
+}
+
+// Organizes using file extension. Ensures the extension is the ones we want 
+func OrganizeFilesByExtension(outputPath, extension string) error {
+  return OrganizeFilesByRegex(".*\\." + extension, outputPath)
 }
 
 // Copies a source file to the destination folder

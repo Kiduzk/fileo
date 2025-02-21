@@ -16,12 +16,15 @@ func main() {
       },
       &cli.StringFlag{
         Name: "output",
-        Usage: "The directory of output files",
+        Usage: "The directory of output files.",
       },
-
+      &cli.StringFlag{
+        Name: "extension",
+        Usage: "Matches files with a specific extension.",
+      },
     },
     Name: "FileOrganizer",
-    Usage: "Organizes files nicely",
+    Usage: "Organizes files nicely.",
     Action: cliActionHandler,
   }
   if err := app.Run(os.Args); err != nil {
@@ -32,17 +35,25 @@ func main() {
 
 func cliActionHandler(cCtx *cli.Context) error {
   if cCtx.NArg() > 0 {
-    pattern := cCtx.Args().Get(0)
-    OrganizeFilesByPattern(pattern, "/cool")
+    // pattern := cCtx.Args().Get(0)
   }
 
   // Get some of the cli arguments
+
   pattern := cCtx.String("pattern")
   outputPath := cCtx.String("output")
+  
+  extension := cCtx.String("extension")
+
+  mimeType := cCtx.String("mime")
 
   if pattern != "" {
-    OrganizeFilesByPattern(pattern, outputPath)
-  }
+    OrganizeFilesByRegex(pattern, outputPath)
+  } else if (extension != "") {
+    OrganizeFilesByExtension(outputPath, extension)
+  } else if (mimeType != "") {
+
+  } 
   
   return nil
 }
