@@ -22,6 +22,10 @@ func main() {
         Name: "extension",
         Usage: "Matches files with a specific extension.",
       },
+      &cli.BoolFlag{
+        Name: "recursive",
+        Usage: "Option to recursively search a directory.",
+      },
     },
     Name: "FileOrganizer",
     Usage: "Organizes files nicely.",
@@ -46,6 +50,8 @@ func cliActionHandler(cCtx *cli.Context) error {
   extension := cCtx.String("extension")
 
   mimeType := cCtx.String("mime")
+  
+  recursive := cCtx.Bool("recursive")
 
   if outputPath == "" {
     log.Fatal("No file output path given.")
@@ -53,10 +59,21 @@ func cliActionHandler(cCtx *cli.Context) error {
   }
 
   if pattern != "" {
-    //OrganizeFilesByRegex(pattern, outputPath),
-    OrganizeFilesByRegexRecursive(pattern, outputPath)
+
+    if recursive {
+      OrganizeFilesByRegexRecursive(pattern, outputPath)
+    } else {
+      OrganizeFilesByRegex(pattern, outputPath)
+    }
+
   } else if (extension != "") {
-    OrganizeFilesByExtension(outputPath, extension)
+
+    if recursive {
+      OrganizeFilesByExtensionRecursive(outputPath, extension)
+    } else {
+      OrganizeFilesByExtension(outputPath, extension)
+    }
+
   } else if (mimeType != "") {
 
   } 

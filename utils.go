@@ -34,6 +34,11 @@ func OrganizeFilesByRegex(regexPattern, outputPath string) error {
   return nil
 }
 
+
+// TODO: this kind of feels repeated code as the non-recursive version so maybe put them together. But
+// I kind of like that it is repeated since it is more clear for me to understand 
+
+// Function to recursively search for a regex pattern
 func OrganizeFilesByRegexRecursive(regexPattern, outputPath string) error {
   dir, err := os.Getwd()
   HandleError(err)
@@ -48,7 +53,6 @@ func OrganizeFilesByRegexRecursive(regexPattern, outputPath string) error {
       r, _ := regexp.MatchString(regexPattern, path)
       if r {
         copyFile(path, outputPath)
-		    fmt.Println(path)
       }
     }
 
@@ -57,9 +61,14 @@ func OrganizeFilesByRegexRecursive(regexPattern, outputPath string) error {
 }
 
 
-// Organizes using file extension. Ensures the extension is the ones we want 
+// Organizes using file extension. 
 func OrganizeFilesByExtension(outputPath, extension string) error {
   return OrganizeFilesByRegex(".*\\." + extension, outputPath)
+}
+
+// Organizes using file extension recursively. 
+func OrganizeFilesByExtensionRecursive(outputPath, extension string) error {
+  return OrganizeFilesByRegexRecursive(".*\\." + extension, outputPath)
 }
 
 // Copies a source file to the destination folder
@@ -74,8 +83,11 @@ func copyFile(src, dst string) {
   data, err := os.ReadFile(src)
   HandleError(err)
 
+  // Get the file name
+  _, fileName := filepath.Split(src)
+
   // Add the file name to the path
-  fullDstPath := filepath.Join(dst, src)
+  fullDstPath := filepath.Join(dst, fileName)
   os.WriteFile(fullDstPath, data, 0644)
 
   HandleError(err)
