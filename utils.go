@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+  "io/fs"
 	"path/filepath"
 	"regexp"
 )
@@ -13,7 +14,7 @@ import (
 // This functin organizes file using the name pattern
 // INPUT: pattern -> the regex pattern we want to match
 //      : outputPath -> the path of where we want the new files to be at
-func OrganizeFilesByRegex(regexPattern, outputPath string,) error {
+func OrganizeFilesByRegex(regexPattern, outputPath string) error {
   dir, err := os.Getwd()
   HandleError(err)
 
@@ -26,12 +27,35 @@ func OrganizeFilesByRegex(regexPattern, outputPath string,) error {
     r, _ := regexp.MatchString(regexPattern, file.Name())
 
     if r {
-      copyFile(file.Name(), outputPath, file.Name())
+      copyFile(file.Name(), outputPath)
     }
   }
 
   return nil
 }
+
+func OrganizeFilesByRegexRecursive(regexPattern, outputPath string) error {
+  dir, err := os.Getwd()
+  HandleError(err)
+
+  return fs.WalkDir(os.DirFS(dir), ".", func(path string, d fs.DirEntry, err error) error {
+    HandleError(err)
+
+    // Look at the files and if they match our pattern copy them over to our output path
+    if (!d.IsDir()) {
+
+      // Match the file names with the pattern 
+      r, _ := regexp.MatchString(regexPattern, path)
+      if r {
+        copyFile(path, outputPath)
+		    fmt.Println(path)
+      }
+    }
+
+		return nil
+	})
+}
+
 
 // Organizes using file extension. Ensures the extension is the ones we want 
 func OrganizeFilesByExtension(outputPath, extension string) error {
@@ -39,7 +63,7 @@ func OrganizeFilesByExtension(outputPath, extension string) error {
 }
 
 // Copies a source file to the destination folder
-func copyFile(src, dst, fileName string) {
+func copyFile(src, dst string) {
   
   // Create the destination folder if it does not exist already
   if _, err := os.Stat(src); !os.IsNotExist(err) {
@@ -51,7 +75,7 @@ func copyFile(src, dst, fileName string) {
   HandleError(err)
 
   // Add the file name to the path
-  fullDstPath := filepath.Join(dst, fileName)
+  fullDstPath := filepath.Join(dst, src)
   os.WriteFile(fullDstPath, data, 0644)
 
   HandleError(err)

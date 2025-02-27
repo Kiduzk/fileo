@@ -47,8 +47,14 @@ func cliActionHandler(cCtx *cli.Context) error {
 
   mimeType := cCtx.String("mime")
 
+  if outputPath == "" {
+    log.Fatal("No file output path given.")
+    return nil
+  }
+
   if pattern != "" {
-    OrganizeFilesByRegex(pattern, outputPath)
+    //OrganizeFilesByRegex(pattern, outputPath),
+    OrganizeFilesByRegexRecursive(pattern, outputPath)
   } else if (extension != "") {
     OrganizeFilesByExtension(outputPath, extension)
   } else if (mimeType != "") {
