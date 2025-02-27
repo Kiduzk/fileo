@@ -13,18 +13,22 @@ func main() {
       &cli.StringFlag{
         Name: "pattern",
         Usage: "Pattern to match with file name, supports regex.",
+        Aliases: []string{"p"},
       },
       &cli.StringFlag{
         Name: "output",
         Usage: "The directory of output files.",
+        Aliases: []string{"o"},
       },
       &cli.StringFlag{
         Name: "extension",
         Usage: "Matches files with a specific extension.",
+        Aliases: []string{"e"},
       },
       &cli.BoolFlag{
         Name: "recursive",
         Usage: "Option to recursively search a directory.",
+        Aliases: []string{"r"},
       },
     },
     Name: "FileOrganizer",
