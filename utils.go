@@ -97,7 +97,9 @@ func copyFile(src, dst string) {
 
   HandleError(err)
   wd, _ := os.Getwd()
-  fmt.Println("the dir rn is",wd, src, dst)
+  if false {
+    fmt.Println("the dir rn is",wd, src, dst)
+  }
 }
 
 

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	// "fmt"
 	"log"
 	"os"
 
@@ -12,19 +12,19 @@ func main() {
   app := &cli.App{
     Flags: []cli.Flag{
       &cli.StringFlag{
-        Name: "pattern",
-        Usage: "Pattern to match with file name, supports regex.",
-        Aliases: []string{"p"},
-      },
-      &cli.StringFlag{
         Name: "output",
         Usage: "The directory of output files.",
         Aliases: []string{"o"},
       },
-      &cli.StringFlag{
+      &cli.StringSliceFlag{
         Name: "extension",
         Usage: "Matches files with a specific extension.",
         Aliases: []string{"e"},
+      },
+      &cli.StringSliceFlag{
+        Name: "pattern",
+        Usage: "Pattern to match with file name, supports regex.",
+        Aliases: []string{"p"},
       },
       &cli.BoolFlag{
         Name: "recursive",
@@ -48,11 +48,10 @@ func cliActionHandler(cCtx *cli.Context) error {
   }
 
   // Get some of the cli arguments
-
-  pattern := cCtx.String("pattern")
   outputPath := cCtx.String("output")
-  
-  extension := cCtx.String("extension")
+
+  patternSlice := cCtx.StringSlice("pattern")
+  extensionSlice := cCtx.StringSlice("extension")
 
   mimeType := cCtx.String("mime")
   
@@ -63,21 +62,32 @@ func cliActionHandler(cCtx *cli.Context) error {
     return nil
   }
 
-  if pattern != "" {
+  if len(patternSlice) != 0 {
+    var organizeFunction func(string, string) error
 
     if recursive {
-      OrganizeFilesByRegexRecursive(pattern, outputPath)
+      organizeFunction = OrganizeFilesByRegexRecursive
     } else {
-      fmt.Println("this is it", pattern)
-      OrganizeFilesByRegex(pattern, outputPath)
+      organizeFunction = OrganizeFilesByRegex
     }
 
-  } else if (extension != "") {
+
+    for _, pattern := range patternSlice {
+      organizeFunction(string(pattern), outputPath)
+    }
+
+  } else if (len(extensionSlice) != 0) {
+
+    var organizeFunction func(string, string) error
 
     if recursive {
-      OrganizeFilesByExtensionRecursive(outputPath, extension)
+      organizeFunction = OrganizeFilesByExtension
     } else {
-      OrganizeFilesByExtension(outputPath, extension)
+      organizeFunction = OrganizeFilesByExtensionRecursive
+    }
+
+    for _, extension := range extensionSlice {
+      organizeFunction(outputPath, string(extension))
     }
 
   } else if (mimeType != "") {
