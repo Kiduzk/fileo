@@ -23,10 +23,15 @@ func OrganizeFilesByRegex(regexPattern, outputPath string) error {
 
   for _, file := range files {
 
+    if file.IsDir() {
+      continue
+    } 
+
     // Match the file names with the pattern 
     r, _ := regexp.MatchString(regexPattern, file.Name())
 
     if r {
+      fmt.Println(r, regexPattern, file.Name())
       copyFile(file.Name(), outputPath)
     }
   }

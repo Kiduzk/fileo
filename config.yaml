@@ -1,0 +1,21 @@
+folders:
+  - name: "Documents"
+    extensions: 
+      - "txt"
+      - "pdf"
+      - "docx"
+  - name: "Images"
+    extensions: 
+      - "jpg"
+      - "png"
+      - "gif"
+  - name: "Videos"
+    extensions:
+      - "mp4"
+      - "mkv"
+      - "avi"
+  - name: "Music"
+    extensions:
+      - "mp3"
+      - "wav"
+      - "flac"

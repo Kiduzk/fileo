@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -67,6 +68,7 @@ func cliActionHandler(cCtx *cli.Context) error {
     if recursive {
       OrganizeFilesByRegexRecursive(pattern, outputPath)
     } else {
+      fmt.Println("this is it", pattern)
       OrganizeFilesByRegex(pattern, outputPath)
     }
 
