@@ -7,6 +7,7 @@ import (
   "io/fs"
 	"path/filepath"
 	"regexp"
+  "gopkg.in/yaml.v3"
 )
 
 
@@ -101,6 +102,25 @@ func copyFile(src, dst string) {
     fmt.Println("the dir rn is",wd, src, dst)
   }
 }
+
+// Now , we will create a function to read the config file recursively and apply the desired structure
+func ApplyConfig(fileName string) error {
+  yamlFile, err := os.ReadFile(fileName)
+  HandleError(err)
+
+  var data map[string]interface{}
+
+  err = yaml.Unmarshal(yamlFile, &data)
+  HandleError(err)
+
+  walkYamlFile(yamlFile)
+
+  fmt.Println(data["fol"])
+  fmt.Println(fmt.Sprintf("%T", data["fi"]))
+  return nil
+}func funcfunc
+
+
 
 
 // General error handler function
