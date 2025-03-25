@@ -2,25 +2,35 @@ package main
 
 import (
 	"fmt"
+	"io/fs"
 	"log"
 	"os"
-  "io/fs"
 	"path/filepath"
 	"regexp"
-  "gopkg.in/yaml.v3"
-)
 
+	"gopkg.in/yaml.v3"
+)
+ 
+func copyMatchedFiles(fileList []string, outputPath string) error {
+  for _, file := range fileList{ 
+    copyFile(file, outputPath)
+  }
+  return nil
+}
 
 // TODO: add option for recursive file search
 // This functin organizes file using the name pattern
 // INPUT: pattern -> the regex pattern we want to match
 //      : outputPath -> the path of where we want the new files to be at
-func OrganizeFilesByRegex(regexPattern, outputPath string) error {
+// OUTPUT: list of the file names that matched, it does not actually copy them
+func getRegexMatches(regexPattern string) []string {
   dir, err := os.Getwd()
   HandleError(err)
 
   files, err := os.ReadDir(dir)
   HandleError(err)
+
+  matched := []string{}
 
   for _, file := range files {
 
@@ -33,23 +43,38 @@ func OrganizeFilesByRegex(regexPattern, outputPath string) error {
 
     if r {
       fmt.Println(r, regexPattern, file.Name())
-      copyFile(file.Name(), outputPath)
+      matched = append(matched, file.Name())
     }
   }
+  return matched 
+}
+
+// First gets the matches, then copies them over
+func OrganizeFilesByRegex(regexPattern, outputPath string) error {
+  matches := getRegexMatches(regexPattern)
+  copyMatchedFiles(matches, outputPath)
+
+  return nil
+}
+
+func OrganizeFilesByRegexRecursive(regexPattern, outputPath string) error {
+  matches := getRegexMatchesRecursive(regexPattern)
+  copyMatchedFiles(matches, outputPath)
 
   return nil
 }
 
 
-// TODO: this kind of feels repeated code as the non-recursive version so maybe put them together. But
-// I kind of like that it is repeated since it is more clear for me to understand 
+// TODO: this kind of feels repeated code as the non-recursive version so maybe put them together. But I kind of like that it is repeated since it is more clear for me to understand 
 
 // Function to recursively search for a regex pattern
-func OrganizeFilesByRegexRecursive(regexPattern, outputPath string) error {
+func getRegexMatchesRecursive(regexPattern string) []string {
   dir, err := os.Getwd()
   HandleError(err)
 
-  return fs.WalkDir(os.DirFS(dir), ".", func(path string, d fs.DirEntry, err error) error {
+  matched := []string{}
+
+  err = fs.WalkDir(os.DirFS(dir), ".", func(path string, d fs.DirEntry, err error) error {
     HandleError(err)
 
     // Look at the files and if they match our pattern copy them over to our output path
@@ -58,12 +83,15 @@ func OrganizeFilesByRegexRecursive(regexPattern, outputPath string) error {
       // Match the file names with the pattern 
       r, _ := regexp.MatchString(regexPattern, path)
       if r {
-        copyFile(path, outputPath)
+        matched = append(matched, path)
       }
     }
 
-		return nil
+    return nil
 	})
+  HandleError(err)
+
+  return matched
 }
 
 
@@ -96,31 +124,70 @@ func copyFile(src, dst string) {
   fullDstPath := filepath.Join(dst, fileName)
   os.WriteFile(fullDstPath, data, 0644)
 
-  HandleError(err)
+  HandleError(err)    
   wd, _ := os.Getwd()
   if false {
     fmt.Println("the dir rn is",wd, src, dst)
   }
 }
 
+// Struct for how config should look 
+type Folder struct {
+  Name string `yaml:"name"`;
+  Extensions []string `yaml:"extensions"`
+  Patterns []string `yaml:"patterns"`
+  Recurse bool `yaml:"recurse"`
+}
+
+
+type ConfigData struct{
+  Folders []Folder `yaml:"folders"`
+}
+
+
 // Now , we will create a function to read the config file recursively and apply the desired structure
 func ApplyConfig(fileName string) error {
   yamlFile, err := os.ReadFile(fileName)
   HandleError(err)
 
-  var data map[string]interface{}
+  var data ConfigData 
 
   err = yaml.Unmarshal(yamlFile, &data)
   HandleError(err)
 
-  walkYamlFile(yamlFile)
 
-  fmt.Println(data["fol"])
-  fmt.Println(fmt.Sprintf("%T", data["fi"]))
+  // we enter here, there must always be a folders key in the yaml files
+  // walkYamlFile(yamlFile)
+
+  
+  for _, folder := range data.Folders {
+    
+    // Handle the extensions
+    for _, extension := range folder.Extensions {
+      if folder.Recurse {
+        OrganizeFilesByExtensionRecursive(folder.Name, extension)
+      } else {
+        OrganizeFilesByExtension(folder.Name, extension)
+      }
+    }
+  }
+
+  fmt.Println(data.Folders)
+  // fmt.Println(fmt.Sprintf("%T", data["fi"]))
   return nil
-}func funcfunc
+}
 
 
+// TODO: to be implemented once done with working with folders that do not have nested folders 
+func walkYamlFile(yamlFile map[string]any) error {
+  var data map[string]any
+
+  // err := yaml.Unmarshal(yamlFile, &data)
+  // HandleError(err)
+
+  fmt.Println(yamlFile, &data)
+  return nil
+}
 
 
 // General error handler function

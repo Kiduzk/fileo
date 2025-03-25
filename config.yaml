@@ -1,21 +1,35 @@
 folders:
-  - name: "Documents"
+  - name: "DocumentsFake"
+    recurse: True
     extensions: 
       - "txt"
-      - "pdf"
+      - "go"
+      - "mod"
+      - "md"
       - "docx"
+    patterns:
+      - "asdfasdftest"
+
   - name: "Images"
     extensions: 
       - "jpg"
       - "png"
       - "gif"
+    patterns:
+      - "testing of "
+
   - name: "Videos"
     extensions:
       - "mp4"
       - "mkv"
       - "avi"
+    patterns:
+      - "test"
+
   - name: "Music"
     extensions:
       - "mp3"
       - "wav"
       - "flac"
+    patterns:
+      - "test2"

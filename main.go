@@ -9,8 +9,8 @@ import (
 )
 
 func main() {
-  ApplyConfig("config.yaml")
-  return 
+  // ApplyConfig("config.yaml")
+  // return 
   app := &cli.App{
     Flags: []cli.Flag{
       &cli.StringFlag{
