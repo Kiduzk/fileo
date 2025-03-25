@@ -42,7 +42,6 @@ func getRegexMatches(regexPattern string) []string {
     r, _ := regexp.MatchString(regexPattern, file.Name())
 
     if r {
-      fmt.Println(r, regexPattern, file.Name())
       matched = append(matched, file.Name())
     }
   }
@@ -50,18 +49,14 @@ func getRegexMatches(regexPattern string) []string {
 }
 
 // First gets the matches, then copies them over
-func OrganizeFilesByRegex(regexPattern, outputPath string) error {
+func OrganizeFilesByRegex(regexPattern, outputPath string) {
   matches := getRegexMatches(regexPattern)
   copyMatchedFiles(matches, outputPath)
-
-  return nil
 }
 
-func OrganizeFilesByRegexRecursive(regexPattern, outputPath string) error {
+func OrganizeFilesByRegexRecursive(regexPattern, outputPath string) {
   matches := getRegexMatchesRecursive(regexPattern)
   copyMatchedFiles(matches, outputPath)
-
-  return nil
 }
 
 
@@ -95,14 +90,24 @@ func getRegexMatchesRecursive(regexPattern string) []string {
 }
 
 
+func getExtensionMatches(extension string) []string {
+  return getRegexMatches(".*\\." + extension) 
+}
+
+func getExtensionMatchesRecursive(extension string) []string {
+  return getRegexMatches(".*\\." + extension) 
+}
+
 // Organizes using file extension. 
-func OrganizeFilesByExtension(outputPath, extension string) error {
-  return OrganizeFilesByRegex(".*\\." + extension, outputPath)
+func OrganizeFilesByExtension(outputPath, extension string) {
+  matches := getExtensionMatches(extension)
+  copyMatchedFiles(matches, outputPath)
 }
 
 // Organizes using file extension recursively. 
-func OrganizeFilesByExtensionRecursive(outputPath, extension string) error {
-  return OrganizeFilesByRegexRecursive(".*\\." + extension, outputPath)
+func OrganizeFilesByExtensionRecursive(outputPath, extension string) {
+  matches := getExtensionMatchesRecursive(extension)
+  copyMatchedFiles(matches, outputPath)
 }
 
 // Copies a source file to the destination folder
@@ -162,17 +167,29 @@ func ApplyConfig(fileName string) error {
   
   for _, folder := range data.Folders {
     
+    matches := []string{}
+
     // Handle the extensions
     for _, extension := range folder.Extensions {
       if folder.Recurse {
-        OrganizeFilesByExtensionRecursive(folder.Name, extension)
+        matches = append(matches, getExtensionMatches(extension)...)
       } else {
-        OrganizeFilesByExtension(folder.Name, extension)
+        matches = append(matches, getRegexMatchesRecursive(extension)...) 
       }
     }
+
+    for _, pattern := range folder.Patterns {
+      if folder.Recurse {
+        matches = append(matches, getRegexMatches(pattern)...)
+      } else {
+        matches = append(matches, getRegexMatches(pattern)...) 
+      }
+    }
+
+    copyMatchedFiles(matches, folder.Name)
   }
 
-  fmt.Println(data.Folders)
+  // fmt.Println(data.Folders)
   // fmt.Println(fmt.Sprintf("%T", data["fi"]))
   return nil
 }

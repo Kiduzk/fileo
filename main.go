@@ -9,8 +9,8 @@ import (
 )
 
 func main() {
-  // ApplyConfig("config.yaml")
-  // return 
+  ApplyConfig("config.yaml")
+  return 
   app := &cli.App{
     Flags: []cli.Flag{
       &cli.StringFlag{
@@ -65,7 +65,7 @@ func cliActionHandler(cCtx *cli.Context) error {
   }
 
   if len(patternSlice) != 0 {
-    var organizeFunction func(string, string) error
+    var organizeFunction func(string, string) 
 
     if recursive {
       organizeFunction = OrganizeFilesByRegexRecursive
@@ -80,7 +80,7 @@ func cliActionHandler(cCtx *cli.Context) error {
 
   } else if (len(extensionSlice) != 0) {
 
-    var organizeFunction func(string, string) error
+    var organizeFunction func(string, string) 
 
     if recursive {
       organizeFunction = OrganizeFilesByExtension
