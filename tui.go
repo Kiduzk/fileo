@@ -86,8 +86,8 @@ func newModel(fp Model) model {
 		help:   help.New(),
 		keymap: keymap{
       changeTab: key.NewBinding(
-        key.WithKeys("tab+space"),
-        key.WithHelp("tab+space", "change tabs"),
+        key.WithKeys("tab"),
+        key.WithHelp("tab", "change tabs"),
       ),
 			quit: key.NewBinding(
 				key.WithKeys("esc", "ctrl+c"),
@@ -98,7 +98,7 @@ func newModel(fp Model) model {
 	}
 
   m.input = newTextarea()
-  m.filePicker = Model{}
+  m.filePicker = New() 
 	m.input.Focus()
 
 
@@ -114,7 +114,7 @@ func (m model) Init() tea.Cmd {
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
-  if m.isInputFocus {
+  if !m.isInputFocus {
     m.filePicker, _ = m.filePicker.Update(msg)
   }
 
@@ -125,9 +125,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
       m.input.Blur()
 			return m, tea.Quit
 		case key.Matches(msg, m.keymap.changeTab):
-      if m.isInputFocus {
+      m.isInputFocus = !m.isInputFocus
+
+      if !m.isInputFocus {
         m.input.Blur()
       } else {
+        m.input.Focus()
         cmd := m.input.Focus()
         cmds = append(cmds, cmd)
       }
@@ -141,6 +144,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.sizeInputs()
 
   // Update the views
+  m.filePicker.Update(msg)
 	newModel, cmd := m.input.Update(msg)
   m.input = newModel
 	cmds = append(cmds, cmd)
@@ -152,8 +156,8 @@ func (m *model) sizeInputs() {
   m.input.SetWidth(m.width / 2)
   m.input.SetHeight(m.height - helpHeight)
 
-  // m.filePicker.wid(m.width / 2)
-  // m.input.SetHeight(m.height - helpHeight)
+  // m.filePicker.Width = m.width / 2
+  m.filePicker.SetHeight(m.height - helpHeight)
 }
 
 // func (m *model) updateKeybindings() {
@@ -168,9 +172,6 @@ func (m model) View() string {
 	})
 
 	var views []string
-	// for i := range m.inputs {
-	// 	views = append(views, m.inputs[i].View())
-	// }
 
   views = append(views, m.input.View())
   views = append(views, m.filePicker.View())
