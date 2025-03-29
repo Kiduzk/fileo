@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"log"
@@ -159,7 +160,11 @@ func ApplyConfig(fileName string) error {
 
   err = yaml.Unmarshal(yamlFile, &data)
   HandleError(err)
-
+  
+  // Ensuring the config is valid
+  if data.Folders == nil {
+    return errors.New("Make sure your config has a folders directory")
+  }
 
   // we enter here, there must always be a folders key in the yaml files
   // walkYamlFile(yamlFile)

@@ -1,7 +1,6 @@
 package main
 
 import (
-	// "fmt"
 	"log"
 	"os"
 
@@ -9,8 +8,11 @@ import (
 )
 
 func main() {
-  ApplyConfig("config.yaml")
-  return 
+  // maintui()
+  // err := ApplyConfig("config.yaml")
+  // HandleError(err)
+  //
+  // return 
   app := &cli.App{
     Flags: []cli.Flag{
       &cli.StringFlag{
@@ -33,9 +35,19 @@ func main() {
         Usage: "Option to recursively search a directory.",
         Aliases: []string{"r"},
       },
+      &cli.BoolFlag{
+        Name: "live-edit",
+        Usage: "Edit a config file live and see the changes in real time.",
+        Aliases: []string{"v"},
+      },
+      &cli.StringFlag{
+        Name: "config",
+        Usage: "Applies a config file",
+        Aliases: []string{"c"},
+      },
     },
     Name: "FileOrganizer",
-    Usage: "Organizes files nicely.",
+    Usage: "Highly customizable file organizer, with support for config files and live change previews",
     Action: cliActionHandler,
   }
   if err := app.Run(os.Args); err != nil {
@@ -56,10 +68,17 @@ func cliActionHandler(cCtx *cli.Context) error {
   extensionSlice := cCtx.StringSlice("extension")
 
   mimeType := cCtx.String("mime")
-  
-  recursive := cCtx.Bool("recursive")
 
-  if outputPath == "" {
+  recursive := cCtx.Bool("recursive")
+  liveEdit := cCtx.Bool("live-edit")
+
+  config := cCtx.String("config")
+  
+  if liveEdit {
+    maintui()
+  } else if len(config) != 0 {
+    ApplyConfig(config)
+  } else if outputPath == "" {
     log.Fatal("No file output path given.")
     return nil
   }
@@ -95,7 +114,7 @@ func cliActionHandler(cCtx *cli.Context) error {
   } else if (mimeType != "") {
 
   } 
-  
+
   return nil
 }
 
