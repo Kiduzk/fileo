@@ -180,7 +180,7 @@ func ApplyConfig(fileName string) error {
 
     for _, pattern := range folder.Patterns {
       if folder.Recurse {
-        matches = append(matches, getRegexMatches(pattern)...)
+        matches = append(matches, getRegexMatchesRecursive(pattern)...)
       } else {
         matches = append(matches, getRegexMatches(pattern)...) 
       }
