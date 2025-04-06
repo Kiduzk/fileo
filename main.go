@@ -35,8 +35,8 @@ func main() {
         Usage: "Option to recursively search a directory.",
         Aliases: []string{"r"},
       },
-      &cli.BoolFlag{
-        Name: "live-edit",
+      &cli.StringFlag{
+        Name: "preview",
         Usage: "Edit a config file live and see the changes in real time.",
         Aliases: []string{"v"},
       },
@@ -70,12 +70,12 @@ func cliActionHandler(cCtx *cli.Context) error {
   mimeType := cCtx.String("mime")
 
   recursive := cCtx.Bool("recursive")
-  liveEdit := cCtx.Bool("live-edit")
 
   config := cCtx.String("config")
+  previewConfig := cCtx.String("preview")
   
-  if liveEdit {
-    maintui()
+  if len(previewConfig) != 0 {
+    RunLivePreview(previewConfig)
   } else if len(config) != 0 {
     ApplyConfig(config)
   } else if outputPath == "" {

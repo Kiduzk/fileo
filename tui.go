@@ -7,13 +7,13 @@ import (
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/textarea"
+	"github.com/charmbracelet/bubbles/filepicker"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
 const (
-	helpHeight    = 5
+	helpHeight = 5
 )
 
 var (
@@ -44,163 +44,121 @@ type keymap = struct {
 	changeTab, quit key.Binding
 }
 
-func newTextarea() textarea.Model {
-	t := textarea.New()
-  t.SetValue(`folders:
-  - name: "DocumentsSample"
-    recurse: True
-    extensions: 
-      - "go"
-      - "mod"
-    patterns:
-      - "READ"
-  `)
-	t.Prompt = ""
-	t.Placeholder = "Type the config here "
-	t.FocusedStyle.Placeholder = focusedPlaceholderStyle
-	t.BlurredStyle.Placeholder = placeholderStyle
-	t.FocusedStyle.CursorLine = cursorLineStyle
-	t.FocusedStyle.Base = focusedBorderStyle
-	t.BlurredStyle.Base = blurredBorderStyle
-	t.FocusedStyle.EndOfBuffer = endOfBufferStyle
-	t.BlurredStyle.EndOfBuffer = endOfBufferStyle
-	t.KeyMap.DeleteWordBackward.SetEnabled(false)
-	t.KeyMap.LineNext = key.NewBinding(key.WithKeys("down"))
-	t.KeyMap.LinePrevious = key.NewBinding(key.WithKeys("up"))
-	t.Blur()
-	return t
-}
-
 type model struct {
-	width  int
-	height int
-	keymap keymap
-	help   help.Model
-	input textarea.Model
-  filePicker Model 
-  isInputFocus bool
+	width        int
+	height       int
+	keymap       keymap
+	help         help.Model
+	leftFilePicker   filepicker.Model
+	rightFilePicker   filepicker.Model
+	isLeftFocus bool
 }
 
-func newModel(fp Model) model {
+func newModel(rightFP, leftFP filepicker.Model) model {
 	m := model{
-		help:   help.New(),
+		isLeftFocus: false,
+		help: help.New(),
 		keymap: keymap{
-      changeTab: key.NewBinding(
-        key.WithKeys("tab"),
-        key.WithHelp("tab", "change tabs"),
-      ),
+			changeTab: key.NewBinding(
+				key.WithKeys("tab"),
+				key.WithHelp("tab", "change tabs"),
+			),
 			quit: key.NewBinding(
 				key.WithKeys("esc", "ctrl+c"),
 				key.WithHelp("esc", "quit"),
 			),
 		},
-    filePicker: fp,
+		leftFilePicker: leftFP,
+		rightFilePicker: rightFP,
 	}
-
-  m.input = newTextarea()
-  m.filePicker = New() 
-	m.input.Focus()
-
 
 	// m.updateKeybindings()
 	return m
 }
 
 func (m model) Init() tea.Cmd {
-  return m.filePicker.Init()
-	// return textarea.Blink
- }
+	var cmds []tea.Cmd
+	cmds = append(cmds, m.leftFilePicker.Init())
+	cmds = append(cmds, m.rightFilePicker.Init())
+
+	return tea.Batch(cmds...)
+}
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmds []tea.Cmd
-
-  if !m.isInputFocus {
-    m.filePicker, _ = m.filePicker.Update(msg)
-  }
+	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, m.keymap.quit):
-      m.input.Blur()
 			return m, tea.Quit
 		case key.Matches(msg, m.keymap.changeTab):
-      m.isInputFocus = !m.isInputFocus
+			m.isLeftFocus = !m.isLeftFocus
 
-      if !m.isInputFocus {
-        m.input.Blur()
-      } else {
-        m.input.Focus()
-        cmd := m.input.Focus()
-        cmds = append(cmds, cmd)
-      }
+		// TODO: some sort of blur here would be nice
+
+			// if !m.isLeftFocus {
+			// 	m.input.Blur()
+			// } else {
+			// 	m.input.Focus()
+			// 	cmd := m.input.Focus()
+			// 	cmds = append(cmds, cmd)
+			// }
 		}
-	case tea.WindowSizeMsg:
-		m.height = msg.Height
-		m.width = msg.Width
 	}
 
-	// m.updateKeybindings()
-	m.sizeInputs()
+	if m.isLeftFocus {
+		m.leftFilePicker, cmd = m.leftFilePicker.Update(msg)
+	} else {
+		m.rightFilePicker, cmd = m.rightFilePicker.Update(msg)
+	}
 
-  // Update the views
-  m.filePicker.Update(msg)
-	newModel, cmd := m.input.Update(msg)
-  m.input = newModel
-	cmds = append(cmds, cmd)
-
-	return m, tea.Batch(cmds...)
+	return m, cmd
 }
-
-func (m *model) sizeInputs() {
-  m.input.SetWidth(m.width / 2)
-  m.input.SetHeight(m.height - helpHeight)
-
-  // m.filePicker.Width = m.width / 2
-  m.filePicker.SetHeight(m.height - helpHeight)
-}
-
-// func (m *model) updateKeybindings() {
-// 	m.keymap.add.SetEnabled(len(m.inputs) < maxInputs)
-// 	m.keymap.remove.SetEnabled(len(m.inputs) > minInputs)
-// }
 
 func (m model) View() string {
 	help := m.help.ShortHelpView([]key.Binding{
-    m.keymap.changeTab,
+		m.keymap.changeTab,
 		m.keymap.quit,
 	})
 
 	var views []string
 
-  views = append(views, m.input.View())
-  views = append(views, m.filePicker.View())
+	left := m.leftFilePicker.View()
+	right := m.rightFilePicker.View()
+
+
+	views = append(views, left)
+	views = append(views, right)
 
 	return lipgloss.JoinHorizontal(lipgloss.Center, views...) + "\n\n" + help
 }
 
-func maintui() {
-  fp := New()
-  tempDir, err := os.MkdirTemp("", "this")
-  defer os.RemoveAll(tempDir)
+
+// Takes in the name of the config file and creates a live preview based on that
+func RunLivePreview(configFile string) {
+	fpTemp := filepicker.New()
+	fpTemp2 := filepicker.New()
+
+	fpTemp2.CurrentDirectory, _ = os.UserHomeDir()
 
 
-  // Create the mock file system here 
-  os.WriteFile(tempDir+"/mockfile.txt", []byte{}, 0644)
-  os.WriteFile(tempDir+"/mockfile1.txt", []byte{}, 0644)
+	tempDir, err := os.MkdirTemp("", "this")
+	defer os.RemoveAll(tempDir)
 
-  os.MkdirAll(filepath.Join(tempDir, "folder1/asfd"), 0644)
+	// Create the mock file system here
+	os.WriteFile(tempDir+"/mockfile.txt", []byte{}, 0644)
+	os.WriteFile(tempDir+"/mockfile1.txt", []byte{}, 0644)
 
-  HandleError(err)
+	os.MkdirAll(filepath.Join(tempDir, "folder1/asfd"), 0644)
 
-  fp.CurrentDirectory = tempDir 
-  // fp.AllowedTypes = []string{".mod", ".sum", ".go", ".txt", ".md"}
+	HandleError(err)
 
+	fpTemp.CurrentDirectory = tempDir
+	// fp.AllowedTypes = []string{".mod", ".sum", ".go", ".txt", ".md"}
 
-	if _, err := tea.NewProgram(newModel(fp), tea.WithAltScreen()).Run(); err != nil {
+	if _, err := tea.NewProgram(newModel(fpTemp, fpTemp2), tea.WithAltScreen()).Run(); err != nil {
 		fmt.Println("Error while running program:", err)
 		os.Exit(1)
 	}
 }
-
-
