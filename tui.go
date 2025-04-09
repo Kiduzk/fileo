@@ -7,7 +7,6 @@ import (
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/filepicker"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -49,14 +48,13 @@ type model struct {
 	height       int
 	keymap       keymap
 	help         help.Model
-	leftFilePicker   filepicker.Model
-	rightFilePicker   filepicker.Model
-	isLeftFocus bool
+	leftFilePicker   Model
+	rightFilePicker   Model
+  started bool
 }
 
-func newModel(rightFP, leftFP filepicker.Model) model {
+func newModel(rightFP, leftFP Model) model {
 	m := model{
-		isLeftFocus: false,
 		help: help.New(),
 		keymap: keymap{
 			changeTab: key.NewBinding(
@@ -72,49 +70,52 @@ func newModel(rightFP, leftFP filepicker.Model) model {
 		rightFilePicker: rightFP,
 	}
 
-	// m.updateKeybindings()
 	return m
 }
 
 func (m model) Init() tea.Cmd {
 	var cmds []tea.Cmd
+
+  // m.rightFilePicker.isBlurred = true
+  // m.leftFilePicker.isBlurred = false 
+
 	cmds = append(cmds, m.leftFilePicker.Init())
 	cmds = append(cmds, m.rightFilePicker.Init())
 
 	return tea.Batch(cmds...)
 }
 
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
 
-	switch msg := msg.(type) {
+func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmds []tea.Cmd
+  var cmd tea.Cmd
+
+
+  switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, m.keymap.quit):
 			return m, tea.Quit
 		case key.Matches(msg, m.keymap.changeTab):
-			m.isLeftFocus = !m.isLeftFocus
 
-		// TODO: some sort of blur here would be nice
-
-			// if !m.isLeftFocus {
-			// 	m.input.Blur()
-			// } else {
-			// 	m.input.Focus()
-			// 	cmd := m.input.Focus()
-			// 	cmds = append(cmds, cmd)
-			// }
+      if m.leftFilePicker.isBlurred {
+        m.leftFilePicker.isBlurred = false 
+        m.rightFilePicker.isBlurred = true 
+      } else {
+        m.rightFilePicker.isBlurred = false
+        m.leftFilePicker.isBlurred = true 
+      }
 		}
 	}
 
-	if m.isLeftFocus {
-		m.leftFilePicker, cmd = m.leftFilePicker.Update(msg)
-	} else {
-		m.rightFilePicker, cmd = m.rightFilePicker.Update(msg)
-	}
+  m.leftFilePicker, cmd = m.leftFilePicker.Update(msg)
+  cmds = append(cmds, cmd)
+  m.rightFilePicker, cmd = m.rightFilePicker.Update(msg)
+  cmds = append(cmds, cmd)
 
 	return m, cmd
 }
+
 
 func (m model) View() string {
 	help := m.help.ShortHelpView([]key.Binding{
@@ -137,11 +138,10 @@ func (m model) View() string {
 
 // Takes in the name of the config file and creates a live preview based on that
 func RunLivePreview(configFile string) {
-	fpTemp := filepicker.New()
-	fpTemp2 := filepicker.New()
+	fpTemp := New()
+	fpTemp2 := New()
 
-	fpTemp2.CurrentDirectory, _ = os.UserHomeDir()
-
+	// fpTemp2.CurrentDirectory, _ = os.UserHomeDir()
 
 	tempDir, err := os.MkdirTemp("", "this")
 	defer os.RemoveAll(tempDir)
