@@ -1,6 +1,6 @@
 module example.com/m
 
-go 1.23.5
+go 1.23
 
 require (
 	github.com/charmbracelet/bubbles v0.20.0
