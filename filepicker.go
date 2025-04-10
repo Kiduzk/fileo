@@ -45,7 +45,7 @@ func New() Model {
 		maxStack:         newStack(),
 		KeyMap:           DefaultKeyMap(),
 		Styles:           DefaultStyles(),
-    isBlurred:        false, 
+    isBlurred:        false,
 	}
 }
 
@@ -238,7 +238,6 @@ func (m Model) readDir(path string, showHidden bool) tea.Cmd {
 
 // Init initializes the file picker model.
 func (m Model) Init() tea.Cmd {
-  m.isBlurred = false
 	return m.readDir(m.CurrentDirectory, m.ShowHidden)
 }
 
@@ -252,9 +251,7 @@ func (m *Model) SetHeight(height int) {
 
 // Update handles user interactions within the file picker model.
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
-  if m.isBlurred {
-    return m, nil
-  }
+
 	switch msg := msg.(type) {
 	case readDirMsg:
 		if msg.id != m.id {
@@ -268,6 +265,9 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		}
 		m.max = m.Height - 1
 	case tea.KeyMsg:
+    if m.isBlurred {
+      break
+    }
 		switch {
 		case key.Matches(msg, m.KeyMap.GoToTop):
 			m.selected = 0
@@ -317,7 +317,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 			if m.min < 0 {
 				m.min = 0
-				m.max = m.min + m.Height
+				m.max =m.min + m.Height
 			}
 		case key.Matches(msg, m.KeyMap.Back):
 			m.CurrentDirectory = filepath.Dir(m.CurrentDirectory)

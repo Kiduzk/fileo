@@ -54,6 +54,9 @@ type model struct {
 }
 
 func newModel(rightFP, leftFP Model) model {
+  leftFP.isBlurred = false 
+  rightFP.isBlurred = true
+
 	m := model{
 		help: help.New(),
 		keymap: keymap{
@@ -75,9 +78,6 @@ func newModel(rightFP, leftFP Model) model {
 
 func (m model) Init() tea.Cmd {
 	var cmds []tea.Cmd
-
-  // m.rightFilePicker.isBlurred = true
-  // m.leftFilePicker.isBlurred = false 
 
 	cmds = append(cmds, m.leftFilePicker.Init())
 	cmds = append(cmds, m.rightFilePicker.Init())
@@ -113,7 +113,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
   m.rightFilePicker, cmd = m.rightFilePicker.Update(msg)
   cmds = append(cmds, cmd)
 
-	return m, cmd
+	return m, tea.Batch(cmds...) 
 }
 
 
@@ -138,8 +138,8 @@ func (m model) View() string {
 
 // Takes in the name of the config file and creates a live preview based on that
 func RunLivePreview(configFile string) {
-	fpTemp := New()
-	fpTemp2 := New()
+	leftFP := New()
+  rightFP := New()
 
 	// fpTemp2.CurrentDirectory, _ = os.UserHomeDir()
 
@@ -154,10 +154,10 @@ func RunLivePreview(configFile string) {
 
 	HandleError(err)
 
-	fpTemp.CurrentDirectory = tempDir
+	rightFP.CurrentDirectory = tempDir
 	// fp.AllowedTypes = []string{".mod", ".sum", ".go", ".txt", ".md"}
 
-	if _, err := tea.NewProgram(newModel(fpTemp, fpTemp2), tea.WithAltScreen()).Run(); err != nil {
+	if _, err := tea.NewProgram(newModel(leftFP, rightFP), tea.WithAltScreen()).Run(); err != nil {
 		fmt.Println("Error while running program:", err)
 		os.Exit(1)
 	}
