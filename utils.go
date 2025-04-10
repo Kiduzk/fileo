@@ -77,7 +77,7 @@ func getRegexMatchesRecursive(regexPattern string) []string {
     if (!d.IsDir()) {
 
       // Match the file names with the pattern 
-      r, _ := regexp.MatchString(regexPattern, path)
+      r, _ := regexp.MatchString(regexPattern, d.Name())
       if r {
         matched = append(matched, path)
       }
@@ -96,7 +96,7 @@ func getExtensionMatches(extension string) []string {
 }
 
 func getExtensionMatchesRecursive(extension string) []string {
-  return getRegexMatches(".*\\." + extension) 
+  return getRegexMatchesRecursive(".*\\." + extension) 
 }
 
 // Organizes using file extension. 
@@ -143,6 +143,7 @@ type Folder struct {
   Extensions []string `yaml:"extensions"`
   Patterns []string `yaml:"patterns"`
   Recurse bool `yaml:"recurse"`
+  ChildFolders []string `yaml:"folders"`
 }
 
 
@@ -177,9 +178,9 @@ func ApplyConfig(fileName string) error {
     // Handle the extensions
     for _, extension := range folder.Extensions {
       if folder.Recurse {
-        matches = append(matches, getExtensionMatches(extension)...)
+        matches = append(matches, getExtensionMatchesRecursive(extension)...)
       } else {
-        matches = append(matches, getRegexMatchesRecursive(extension)...) 
+        matches = append(matches, getExtensionMatches(extension)...) 
       }
     }
 

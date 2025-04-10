@@ -127,7 +127,13 @@ func (m model) View() string {
 
 	left := m.leftFilePicker.View()
 	right := m.rightFilePicker.View()
-
+  if m.rightFilePicker.isBlurred {
+    left = focusedBorderStyle.Render(left)
+    right = blurredBorderStyle.Render(right)
+  } else {
+    right = focusedBorderStyle.Render(right)
+    left = blurredBorderStyle.Render(left)
+  }
 
 	views = append(views, left)
 	views = append(views, right)
