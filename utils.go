@@ -13,7 +13,7 @@ import (
 )
  
 func copyMatchedFiles(fileList []string, outputPath string) error {
-  for _, file := range fileList{ 
+  for _, file := range fileList { 
     copyFile(file, outputPath)
   }
   return nil
@@ -28,6 +28,8 @@ func getRegexMatches(regexPattern string) []string {
   dir, err := os.Getwd()
   HandleError(err)
 
+  re := regexp.MustCompile(regexPattern)
+
   files, err := os.ReadDir(dir)
   HandleError(err)
 
@@ -40,7 +42,8 @@ func getRegexMatches(regexPattern string) []string {
     } 
 
     // Match the file names with the pattern 
-    r, _ := regexp.MatchString(regexPattern, file.Name())
+    r := re.MatchString(file.Name())
+    HandleError(err)
 
     if r {
       matched = append(matched, file.Name())
@@ -92,11 +95,11 @@ func getRegexMatchesRecursive(regexPattern string) []string {
 
 
 func getExtensionMatches(extension string) []string {
-  return getRegexMatches(".*\\." + extension) 
+  return getRegexMatches(".*\\." + extension + "$") 
 }
 
 func getExtensionMatchesRecursive(extension string) []string {
-  return getRegexMatchesRecursive(".*\\." + extension) 
+  return getRegexMatchesRecursive(".*\\." + extension + "$") 
 }
 
 // Organizes using file extension. 

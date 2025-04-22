@@ -527,3 +527,5 @@ func (m Model) canSelect(file string) bool {
 	}
 	return false
 }
+
+

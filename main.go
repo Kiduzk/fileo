@@ -12,37 +12,37 @@ func main() {
     Flags: []cli.Flag{
       &cli.StringFlag{
         Name: "output",
-        Usage: "The directory of output files.",
+        Usage: "output directory",
         Aliases: []string{"o"},
       },
       &cli.StringSliceFlag{
-        Name: "extension",
-        Usage: "Matches files with a specific extension.",
+        Name: "ext",
+        Usage: "match an extension (eg: txt)",
         Aliases: []string{"e"},
       },
       &cli.StringSliceFlag{
         Name: "pattern",
-        Usage: "Pattern to match with file name, supports regex.",
+        Usage: "match a regex pattern",
         Aliases: []string{"p"},
       },
       &cli.BoolFlag{
         Name: "recursive",
-        Usage: "Option to recursively search a directory.",
+        Usage: "allow recursive directory search",
         Aliases: []string{"r"},
       },
-      &cli.StringFlag{
-        Name: "preview",
-        Usage: "Edit a config file live and see the changes in real time.",
-        Aliases: []string{"v"},
-      },
+      // &cli.StringFlag{
+      //   Name: "preview",
+      //   Usage: "Edit a config file live and see the changes in real time.",
+      //   Aliases: []string{"v"},
+      // },
       &cli.StringFlag{
         Name: "config",
-        Usage: "Applies a config file",
+        Usage: "applies a config file",
         Aliases: []string{"c"},
       },
     },
-    Name: "FileOrganizer",
-    Usage: "Highly customizable file organizer, with support for config files and live change previews",
+    Name: "fileo",
+    Usage: "Highly customizable file organizer",
     Action: cliActionHandler,
   }
   if err := app.Run(os.Args); err != nil {
