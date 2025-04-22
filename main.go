@@ -8,11 +8,6 @@ import (
 )
 
 func main() {
-  // maintui()
-  // err := ApplyConfig("config.yaml")
-  // HandleError(err)
-  //
-  // return 
   app := &cli.App{
     Flags: []cli.Flag{
       &cli.StringFlag{
@@ -72,11 +67,14 @@ func cliActionHandler(cCtx *cli.Context) error {
   recursive := cCtx.Bool("recursive")
 
   config := cCtx.String("config")
-  previewConfig := cCtx.String("preview")
-  
-  if len(previewConfig) != 0 {
-    RunLivePreview(previewConfig)
-  } else if len(config) != 0 {
+
+  // ----- for now live preview is disabled until it works properlt
+  // previewConfig := cCtx.String("preview")
+  // if len(previewConfig) != 0 {
+  //   RunLivePreview(previewConfig)
+  // }
+
+  if len(config) != 0 {
     ApplyConfig(config)
   } else if outputPath == "" {
     log.Fatal("No file output path given.")
