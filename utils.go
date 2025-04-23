@@ -9,6 +9,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"slices"
 
 	"gopkg.in/yaml.v3"
 )
@@ -20,7 +21,6 @@ func copyMatchedFiles(fileList []string, outputPath string) error {
   return nil
 }
 
-// TODO: add option for recursive file search
 // This functin organizes file using the name pattern
 // INPUT: pattern -> the regex pattern we want to match
 //      : outputPath -> the path of where we want the new files to be at
@@ -172,34 +172,51 @@ func ApplyConfig(fileName string) error {
   }
 
   // we enter here, there must always be a folders key in the yaml files
-  return applyConfigRecurse("", data.Folders)
+  return applyConfigRecurse("", data.Folders, []string{}, true)
 }
 
-func applyConfigRecurse(parentDir string, folders []Folder) error {
+
+// NOTE: General behavior now: if the user specifies a folder within a folder in the config file,
+// then the inner folder will only match the files from the ones that matched with the parent file.
+// NOTE: also, if a file matches in multiple patterns, the default behavior will create a copy of a file for each match. 
+// (both the above can be modified but thats the current implementation)
+func applyConfigRecurse(parentDir string, folders []Folder, parentMatches []string, firstRun bool) error {
   for _, folder := range folders {
     
-    matches := []string{}
+    currMatches := []string{}
 
     // Handle the extensions
     for _, extension := range folder.Extensions {
       if folder.Recurse {
-        matches = append(matches, getExtensionMatchesRecursive(extension)...)
+        currMatches = append(currMatches, getExtensionMatchesRecursive(extension)...)
       } else {
-        matches = append(matches, getExtensionMatches(extension)...) 
+        currMatches = append(currMatches, getExtensionMatches(extension)...) 
       }
     }
 
     for _, pattern := range folder.Patterns {
       if folder.Recurse {
-        matches = append(matches, getRegexMatchesRecursive(pattern)...)
+        currMatches = append(currMatches, getRegexMatchesRecursive(pattern)...)
       } else {
-        matches = append(matches, getRegexMatches(pattern)...) 
+        currMatches = append(currMatches, getRegexMatches(pattern)...) 
       }
+    }
+
+    // Look through only the parent matches
+    matches := []string{}
+    if !firstRun {
+      for _, item1 := range currMatches {
+        if slices.Contains(parentMatches, item1) {
+          matches = append(matches, item1)
+        }
+      } 
+    } else {
+      matches = currMatches
     }
 
     newPath := path.Join(parentDir, folder.Name)
     copyMatchedFiles(matches, newPath) 
-    err := applyConfigRecurse(newPath, folder.ChildFolders)
+    err := applyConfigRecurse(newPath, folder.ChildFolders, matches, false)
     HandleError(err)
   }
 

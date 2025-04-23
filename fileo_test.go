@@ -155,9 +155,19 @@ func TestApplyConfig(t *testing.T) {
       - name: "only_python"
         patterns:
           - "python1" 
-      
+
+  - name: "broad_documents"
+    recurse: True
+    extensions:
+      - "pdf" 
+      - "txt" 
+    folders:
+      - name: "all_documents" 
+        recurse: True  
+        patterns:
+          - ".*"
   ` 
- err := os.WriteFile("test_config.yaml", []byte(sampleConfig), os.ModePerm)
+  err := os.WriteFile("test_config.yaml", []byte(sampleConfig), os.ModePerm)
   HandleError(err)
 
   err = ApplyConfig("test_config.yaml")
@@ -179,12 +189,21 @@ func TestApplyConfig(t *testing.T) {
   onlyPythonFiles, err := os.ReadDir("code/only_python")
   HandleError(err)
   if len(onlyPythonFiles) != 1 {
-    t.Errorf("ApplyConfig not working. Number of files in 'code' does not match what was expected: %d != 3", len(codeFiles))
+    t.Errorf("ApplyConfig not working. Number of files in 'code' does not match what was expected: %d != 1", len(codeFiles))
   }
+
+  broadDocuments, err := os.ReadDir("broad_documents/all_documents")
+  HandleError(err)
+  if len(broadDocuments) != 10 {
+    t.Errorf("ApplyConfig not working. Number of files in 'broad_documents' does not match what was expected: %d != 10", len(broadDocuments))
+  }
+
+
 
   pathExists(t, "documents")
   pathExists(t, "code")
   pathExists(t, "code/only_python")
+  pathExists(t, "broad_documents/all_documents")
 
 }
 
