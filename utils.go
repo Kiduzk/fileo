@@ -13,6 +13,36 @@ import (
 
 	"gopkg.in/yaml.v3"
 )
+
+var sampleConfig string =
+`# This is a sample config file
+
+# You can specify folders and what files you want to go to those folders.
+# For instance, if you want to have documents have txt and PDFs then use:
+
+folders:
+- name: "documents"
+  extensions: 
+    - "txt"
+    - "pdf"
+
+  # You can create sub folders if you want all the text files with themselves
+  folders:
+    - name: "text_files"
+      extensions:
+        - "txt"
+
+# Example of regex and extension matching using the recursive flag to look within each sub directory when finding files 
+# Lets say we want to filter our notes in chemsitry class, then you can do:
+- name: "ChemistryNotes"
+  recurse: True
+  patterns:
+    - "(?=.*chem)(?=.*notes)"
+
+  extensions: 
+    - "txt"
+` 
+ 
  
 func copyMatchedFiles(fileList []string, outputPath string) error {
   for _, file := range fileList { 

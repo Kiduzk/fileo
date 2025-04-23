@@ -35,10 +35,15 @@ func main() {
       //   Usage: "Edit a config file live and see the changes in real time.",
       //   Aliases: []string{"v"},
       // },
-      &cli.StringFlag{
-        Name: "config",
+      &cli.BoolFlag{
+        Name: "config-create",
+        Usage: "creates a sample a config file",
+        Aliases: []string{"config-c"},
+      },
+      &cli.BoolFlag{
+        Name: "config-apply",
         Usage: "applies a config file",
-        Aliases: []string{"c"},
+        Aliases: []string{"config-a"},
       },
     },
     Name: "fileo",
@@ -66,7 +71,8 @@ func cliActionHandler(cCtx *cli.Context) error {
 
   recursive := cCtx.Bool("recursive")
 
-  config := cCtx.String("config")
+  config_create := cCtx.Bool("config-create")
+  config_apply := cCtx.Bool("config-apply")
 
   // ----- for now live preview is disabled until it works properlt
   // previewConfig := cCtx.String("preview")
@@ -74,14 +80,17 @@ func cliActionHandler(cCtx *cli.Context) error {
   //   RunLivePreview(previewConfig)
   // }
 
-  if len(config) != 0 {
-    ApplyConfig(config)
-  } else if outputPath == "" {
+
+  if outputPath == "" && !config_apply && !config_create {
     log.Fatal("No file output path given.")
     return nil
   }
 
-  if len(patternSlice) != 0 {
+  if config_create { 
+    os.WriteFile("fileo.yaml", []byte(sampleConfig), os.ModePerm)
+  } else if config_apply {
+    ApplyConfig("fileo.yaml")
+  } else if len(patternSlice) != 0 {
     var organizeFunction func(string, string) 
 
     if recursive {
