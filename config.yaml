@@ -1,20 +1,29 @@
 folders:
-  - name: "DocumentsFake"
-    recurse: True
-    extensions: 
-      - "go"
+  - name: "all_files"
+    extensions:
       - "mod"
-    patterns:
-      - "READ"
+    folders:
+      - name: "go_files"
+        extensions:
+          - "go"
 
-  - name: "Images"
-    extensions: 
-      - "jpg"
-      - "png"
-      - "gif"
-    patterns:
-      - "uti"
-
+# folders:
+#   - name: "DocumentsFake"
+#     recurse: True
+#     extensions: 
+#       - "go"
+#       - "mod"
+#     patterns:
+#       - "READ"
+#
+#   - name: "Images"
+#     extensions: 
+#       - "jpg"
+#       - "png"
+#       - "gif"
+#     patterns:
+#       - "uti"
+#
   # - name: "Videos"
   #   extensions:
   #     - "mp4"

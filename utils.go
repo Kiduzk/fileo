@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"log"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 
@@ -146,7 +147,7 @@ type Folder struct {
   Extensions []string `yaml:"extensions"`
   Patterns []string `yaml:"patterns"`
   Recurse bool `yaml:"recurse"`
-  ChildFolders []string `yaml:"folders"`
+  ChildFolders []Folder `yaml:"folders"`
 }
 
 
@@ -171,10 +172,11 @@ func ApplyConfig(fileName string) error {
   }
 
   // we enter here, there must always be a folders key in the yaml files
-  // walkYamlFile(yamlFile)
+  return applyConfigRecurse("", data.Folders)
+}
 
-  
-  for _, folder := range data.Folders {
+func applyConfigRecurse(parentDir string, folders []Folder) error {
+  for _, folder := range folders {
     
     matches := []string{}
 
@@ -195,23 +197,14 @@ func ApplyConfig(fileName string) error {
       }
     }
 
-    copyMatchedFiles(matches, folder.Name)
+    newPath := path.Join(parentDir, folder.Name)
+    copyMatchedFiles(matches, newPath) 
+    err := applyConfigRecurse(newPath, folder.ChildFolders)
+    HandleError(err)
   }
 
   // fmt.Println(data.Folders)
   // fmt.Println(fmt.Sprintf("%T", data["fi"]))
-  return nil
-}
-
-
-// TODO: to be implemented once done with working with folders that do not have nested folders 
-func walkYamlFile(yamlFile map[string]any) error {
-  var data map[string]any
-
-  // err := yaml.Unmarshal(yamlFile, &data)
-  // HandleError(err)
-
-  fmt.Println(yamlFile, &data)
   return nil
 }
 

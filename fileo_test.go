@@ -134,6 +134,60 @@ func TestGetExtensionMatchesRecursive(t *testing.T) {
   }
 }
 
+func TestApplyConfig(t *testing.T) {
+
+  sampleConfig :=
+  `
+  folders:
+  - name: "documents"
+    recurse: True
+    extensions: 
+      - "txt"
+    patterns:
+      - "^magni"
+
+  - name: "code"
+    extensions: 
+      - "py"
+    patterns:
+      - "uti"
+    folders:
+      - name: "only_python"
+        patterns:
+          - "python1" 
+      
+  ` 
+ err := os.WriteFile("test_config.yaml", []byte(sampleConfig), os.ModePerm)
+  HandleError(err)
+
+  err = ApplyConfig("test_config.yaml")
+  HandleError(err)
+
+
+  documentsFiles, err := os.ReadDir("documents")
+  HandleError(err)
+  if len(documentsFiles) != 7 {
+    t.Errorf("ApplyConfig not working. Number of files in 'documents' does not match what was expected: %d != 7", len(documentsFiles))
+  }
+
+  codeFiles, err := os.ReadDir("code")
+  HandleError(err)
+  if len(codeFiles) != 4 {
+    t.Errorf("ApplyConfig not working. Number of files in 'code' does not match what was expected: %d != 4", len(codeFiles))
+  }
+
+  onlyPythonFiles, err := os.ReadDir("code/only_python")
+  HandleError(err)
+  if len(onlyPythonFiles) != 1 {
+    t.Errorf("ApplyConfig not working. Number of files in 'code' does not match what was expected: %d != 3", len(codeFiles))
+  }
+
+  pathExists(t, "documents")
+  pathExists(t, "code")
+  pathExists(t, "code/only_python")
+
+}
+
 func TestCopyFile(t *testing.T) {
 
   copyFile(path.Join(tempDir, "python1.py"), subDirName) 
@@ -157,7 +211,23 @@ func TestCopyFile(t *testing.T) {
   } 
 }
 
+
+// helper function, checks if a folder/file exists
+func pathExists(t *testing.T, pathName string) {
+  if _, err := os.Stat(path.Join(tempDir, pathName)); err != nil {
+    if errors.Is(err, os.ErrNotExist) {
+      t.Errorf("ApplyConfig not working. Error creating folder/file: %s", pathName)
+    } else {
+      t.Error("ApplyConfig not working. Folder/file created, but not able to access it")
+    }
+  } 
+
+} 
+
+
+
 // NOT yet implemented
 func TestMovefile(t *testing.T) {
 }
+
 
