@@ -5,3 +5,6 @@ hidden_unix.go
 hidden_windows.go
 tui.go
 fileo.yaml
+
+# Added by goreleaser init:
+dist/
