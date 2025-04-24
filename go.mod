@@ -1,4 +1,4 @@
-module example.com/m
+module github.com/kiduzk/fileo
 
 go 1.23.5
 
