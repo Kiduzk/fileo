@@ -17,32 +17,39 @@ import (
 var sampleConfig string =
 `# This is a sample config file
 
-# You can specify folders and what files you want to go to those folders.
-# For instance, if you want to have documents have txt and PDFs then use:
 
-folders:
-- name: "documents"
-  extensions: 
-    - "txt"
-    - "pdf"
-
-  # You can create sub folders if you want all the text files with themselves
-  folders:
-    - name: "text_files"
-      extensions:
-        - "txt"
-
-# Example of regex and extension matching using the recursive flag to look within each sub directory when finding files 
-# Lets say we want to filter course documents realted to a chemsitry class, then you can do:
-- name: "ChemistryFiles"
+# Filters out all documents (txt, pdf and docx) which have dates in their names
+- name: 'dated_documents'
   recurse: True
-  patterns:
-    - "chem"
-    - ".*chem.*note"
-    - ".*chem.*homework"
-    - ".*chem.*lab"
-` 
- 
+  patterns: ['\d{4}-\d{2}-\d{2}']
+  extensions: ['txt', 'pdf', 'docx']
+
+
+# You can also nest folders within folders. A more complex use case might look like the following. 
+
+# Filters out all documents (txt, pdf and docx)
+folders:
+- name: 'all_documents'
+  extensions: ['txt', 'pdf', 'docx']
+
+  # Create a sub-folders to filter out the txt and PDFs into their own folder.
+  # represents the directory: all_documents/text_and_PDFS 
+  folders:
+    - name: "text_and_pdf"
+      extensions: ['txt', 'pdf']
+
+      # Puts the text files further into their own folder
+      # represents the directory: all_documents/text_and_PDFS/text 
+      folders:
+        - name: "text"
+          extensions: ["txt"]
+
+    # Puts the word files into their own directory
+    - name: "words"
+      extensions: ["docx"]
+ ` 
+
+
  
 func copyMatchedFiles(fileList []string, outputPath string) error {
   for _, file := range fileList { 
