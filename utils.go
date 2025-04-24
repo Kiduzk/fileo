@@ -216,35 +216,52 @@ func applyConfigRecurse(parentDir string, folders []Folder, parentMatches []stri
 
   for _, folder := range folders {
     
-    currMatches := []string{}
+    extensionMatches := []string{}
+    patternMatches := []string{}
 
     // Handle the extensions
     for _, extension := range folder.Extensions {
       if folder.Recurse {
-        currMatches = append(currMatches, getExtensionMatchesRecursive(extension)...)
+        extensionMatches = append(extensionMatches, getExtensionMatchesRecursive(extension)...)
       } else {
-        currMatches = append(currMatches, getExtensionMatches(extension)...) 
+        extensionMatches = append(extensionMatches, getExtensionMatches(extension)...) 
       }
     }
 
     for _, pattern := range folder.Patterns {
       if folder.Recurse {
-        currMatches = append(currMatches, getRegexMatchesRecursive(pattern)...)
+        patternMatches = append(patternMatches, getRegexMatchesRecursive(pattern)...)
       } else {
-        currMatches = append(currMatches, getRegexMatches(pattern)...) 
+        patternMatches = append(patternMatches, getRegexMatches(pattern)...) 
       }
+    }
+
+    // TODO: this part could use some work 
+    currTotalMatches := []string{}
+    for _, patternMatch := range patternMatches {
+      if slices.Contains(extensionMatches, patternMatch) {
+        currTotalMatches = append(currTotalMatches, patternMatch)
+      }
+    }
+
+    if len(folder.Extensions) == 0 {
+      currTotalMatches = patternMatches
+    }
+
+    if len(folder.Patterns) == 0 {
+      currTotalMatches = extensionMatches
     }
 
     // Look through only the parent matches
     matchesParentCommon := []string{}
     if !firstRun {
-      for _, item1 := range currMatches {
+      for _, item1 := range currTotalMatches {
         if slices.Contains(parentMatches, item1) {
           matchesParentCommon = append(matchesParentCommon, item1)
         }
       } 
     } else {
-      matchesParentCommon = currMatches
+      matchesParentCommon = currTotalMatches 
     }
 
     newPath := path.Join(parentDir, folder.Name)
@@ -254,7 +271,7 @@ func applyConfigRecurse(parentDir string, folders []Folder, parentMatches []stri
     if len(folder.ChildFolders) == 0 {
       matches = matchesParentCommon
     } else {
-      childrenMatches := applyConfigRecurse(newPath, folder.ChildFolders, currMatches, false)
+      childrenMatches := applyConfigRecurse(newPath, folder.ChildFolders, currTotalMatches, false)
 
       for _, match := range matchesParentCommon {
         if !slices.Contains(childrenMatches, match) {
