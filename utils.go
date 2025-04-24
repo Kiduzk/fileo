@@ -33,14 +33,14 @@ folders:
         - "txt"
 
 # Example of regex and extension matching using the recursive flag to look within each sub directory when finding files 
-# Lets say we want to filter our notes in chemsitry class, then you can do:
-- name: "ChemistryNotes"
+# Lets say we want to filter course documents realted to a chemsitry class, then you can do:
+- name: "ChemistryFiles"
   recurse: True
   patterns:
-    - "(?=.*chem)(?=.*notes)"
-
-  extensions: 
-    - "txt"
+    - "chem"
+    - ".*chem.*note"
+    - ".*chem.*homework"
+    - ".*chem.*lab"
 ` 
  
  
@@ -202,7 +202,8 @@ func ApplyConfig(fileName string) error {
   }
 
   // we enter here, there must always be a folders key in the yaml files
-  return applyConfigRecurse("", data.Folders, []string{}, true)
+  applyConfigRecurse("", data.Folders, []string{}, true)
+  return nil
 }
 
 
@@ -210,7 +211,9 @@ func ApplyConfig(fileName string) error {
 // then the inner folder will only match the files from the ones that matched with the parent file.
 // NOTE: also, if a file matches in multiple patterns, the default behavior will create a copy of a file for each match. 
 // (both the above can be modified but thats the current implementation)
-func applyConfigRecurse(parentDir string, folders []Folder, parentMatches []string, firstRun bool) error {
+func applyConfigRecurse(parentDir string, folders []Folder, parentMatches []string, firstRun bool) []string {
+  currTotalMatches := []string{}
+
   for _, folder := range folders {
     
     currMatches := []string{}
@@ -233,26 +236,37 @@ func applyConfigRecurse(parentDir string, folders []Folder, parentMatches []stri
     }
 
     // Look through only the parent matches
-    matches := []string{}
+    matchesParentCommon := []string{}
     if !firstRun {
       for _, item1 := range currMatches {
         if slices.Contains(parentMatches, item1) {
-          matches = append(matches, item1)
+          matchesParentCommon = append(matchesParentCommon, item1)
         }
       } 
     } else {
-      matches = currMatches
+      matchesParentCommon = currMatches
     }
 
     newPath := path.Join(parentDir, folder.Name)
+
+    // If a file has been covered by a subfolder, just skip it 
+    matches := []string{}
+    if len(folder.ChildFolders) == 0 {
+      matches = matchesParentCommon
+    } else {
+      childrenMatches := applyConfigRecurse(newPath, folder.ChildFolders, currMatches, false)
+
+      for _, match := range matchesParentCommon {
+        if !slices.Contains(childrenMatches, match) {
+          matches = append(matches, match)
+        }
+      }
+    }
     copyMatchedFiles(matches, newPath) 
-    err := applyConfigRecurse(newPath, folder.ChildFolders, matches, false)
-    HandleError(err)
+    currTotalMatches = append(currTotalMatches, matches...)
   }
 
-  // fmt.Println(data.Folders)
-  // fmt.Println(fmt.Sprintf("%T", data["fi"]))
-  return nil
+  return currTotalMatches
 }
 
 

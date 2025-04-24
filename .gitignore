@@ -1,2 +1,7 @@
 test/
 config.yaml
+filepicker.go
+hidden_unix.go
+hidden_windows.go
+tui.go
+fileo.yaml
