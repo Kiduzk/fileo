@@ -1,4 +1,4 @@
-module github.com/kiduzk/fileo
+module github.com/Kiduzk/fileo
 
 go 1.23.5
 
