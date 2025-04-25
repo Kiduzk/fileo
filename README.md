@@ -12,7 +12,7 @@ As of right now, `fileo` only copies files and does not move/delete anything.
 
 If you have go installed, run:
 ```bash
-go get https://github.com/Kiduzk/fileo
+go get github.com/kiduzk/fileo
 ```
 If you do not have go installed, you can download the appropriate binary from the releases section and add fileo to your path. 
 
