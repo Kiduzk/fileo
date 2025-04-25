@@ -84,6 +84,11 @@ all_documents/                # Matches: txt, pdf, docx
 │   └── (pdfs here)           # Matches: pdf only
 └── words/                    # Matches: docx only
 ```
+
+Finally, to apply the config file to the current directory simply use:
+```bash
+fileo -config-apply
+```
 **Note**: A file will be copied to the deepest matching directory only within a branch. If it matches multiple sibling subdirectories, it will be copied to all of them. This behavior is the current default but can be changed/modified. Any feedback is appreciated!
 
 Some additional feature ideas:
