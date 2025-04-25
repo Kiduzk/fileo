@@ -17,8 +17,8 @@ import (
 var sampleConfig string =
 `# This is a sample config file
 
-
 # Filters out all documents (txt, pdf and docx) which have dates in their names
+folders:
 - name: 'dated_documents'
   recurse: True
   patterns: ['\d{4}-\d{2}-\d{2}']
@@ -28,7 +28,6 @@ var sampleConfig string =
 # You can also nest folders within folders. A more complex use case might look like the following. 
 
 # Filters out all documents (txt, pdf and docx)
-folders:
 - name: 'all_documents'
   extensions: ['txt', 'pdf', 'docx']
 
@@ -47,7 +46,7 @@ folders:
     # Puts the word files into their own directory
     - name: "words"
       extensions: ["docx"]
- ` 
+  ` 
 
 
  
@@ -244,31 +243,31 @@ func applyConfigRecurse(parentDir string, folders []Folder, parentMatches []stri
     }
 
     // TODO: this part could use some work 
-    currTotalMatches := []string{}
+    currMatches := []string{}
     for _, patternMatch := range patternMatches {
       if slices.Contains(extensionMatches, patternMatch) {
-        currTotalMatches = append(currTotalMatches, patternMatch)
+        currMatches = append(currMatches, patternMatch)
       }
     }
 
     if len(folder.Extensions) == 0 {
-      currTotalMatches = patternMatches
+      currMatches = patternMatches
     }
 
     if len(folder.Patterns) == 0 {
-      currTotalMatches = extensionMatches
+      currMatches = extensionMatches
     }
 
     // Look through only the parent matches
     matchesParentCommon := []string{}
     if !firstRun {
-      for _, item1 := range currTotalMatches {
+      for _, item1 := range currMatches {
         if slices.Contains(parentMatches, item1) {
           matchesParentCommon = append(matchesParentCommon, item1)
         }
       } 
     } else {
-      matchesParentCommon = currTotalMatches 
+      matchesParentCommon = currMatches 
     }
 
     newPath := path.Join(parentDir, folder.Name)
@@ -278,7 +277,8 @@ func applyConfigRecurse(parentDir string, folders []Folder, parentMatches []stri
     if len(folder.ChildFolders) == 0 {
       matches = matchesParentCommon
     } else {
-      childrenMatches := applyConfigRecurse(newPath, folder.ChildFolders, currTotalMatches, false)
+      childrenMatches := applyConfigRecurse(newPath, folder.ChildFolders, matchesParentCommon, false)
+      currTotalMatches = append(currTotalMatches, childrenMatches...)
 
       for _, match := range matchesParentCommon {
         if !slices.Contains(childrenMatches, match) {
@@ -286,11 +286,12 @@ func applyConfigRecurse(parentDir string, folders []Folder, parentMatches []stri
         }
       }
     }
+
     copyMatchedFiles(matches, newPath) 
     currTotalMatches = append(currTotalMatches, matches...)
   }
 
-  return currTotalMatches
+  return currTotalMatches 
 }
 
 

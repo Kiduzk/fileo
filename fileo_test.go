@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"os"
-  "fmt"
 	"path"
 	"testing"
 )
@@ -181,11 +180,8 @@ func TestApplyConfig(t *testing.T) {
 
   codeFiles, err := os.ReadDir("code")
   HandleError(err)
-  if len(codeFiles) != 4 {
-    for _, file := range codeFiles {
-      fmt.Println(file.Name())
-    }
-    t.Errorf("ApplyConfig not working. Number of files in 'code' does not match what was expected: %d != 4", len(codeFiles))
+  if len(codeFiles) != 3 {
+    t.Errorf("ApplyConfig not working. Number of files in 'code' does not match what was expected: %d != 3", len(codeFiles))
   }
 
   onlyPythonFiles, err := os.ReadDir("code/only_python")
