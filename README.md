@@ -12,7 +12,7 @@ As of right now, `fileo` only copies files and does not move/delete anything.
 
 If you have go installed, run:
 ```bash
-go get github.com/kiduzk/fileo
+go install github.com/Kiduzk/fileo@latest
 ```
 If you do not have go installed, you can download the appropriate binary from the releases section and add fileo to your path. 
 
@@ -86,3 +86,6 @@ all_documents/                # Matches: txt, pdf, docx
 ```
 **Note**: A file will be copied to the deepest matching directory only within a branch. If it matches multiple sibling subdirectories, it will be copied to all of them. This behavior is the current default but can be changed/modified. Any feedback is appreciated!
 
+Some additional feature ideas:
+- Support the option for a live preview of what a config would do before actually applying it
+- Have support for a move functionality instead of just copy (a bit risky, but if there is a live preview feature then it might make it more safer)
