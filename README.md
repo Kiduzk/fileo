@@ -20,7 +20,7 @@ If you do not have go installed, you can download the appropriate binary from th
 
 For example, lets put all PDFs into a new folder named pdf_documents.
 ```bash
-fileo -extension pdf -output pdf_documents
+fileo -ext pdf -output pdf_documents
 ```
 You can also use the shorthand:
 ```bash
