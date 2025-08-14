@@ -1,4 +1,4 @@
-﻿# fileo
+﻿# fileo (FileOrganizer)
  
 Easy to use and customizable file organizer cli written in Go. Supports the following:
 - Matching files using a regex pattern
@@ -94,3 +94,4 @@ fileo -config-apply
 Some additional feature ideas:
 - Support the option for a live preview of what a config would do before actually applying it
 - Have support for a move functionality instead of just copy (a bit risky, but if there is a live preview feature then it might make it more safer)
+
