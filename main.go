@@ -30,11 +30,11 @@ func main() {
         Usage: "allow recursive directory search",
         Aliases: []string{"r"},
       },
-      // &cli.StringFlag{
-      //   Name: "preview",
-      //   Usage: "Edit a config file live and see the changes in real time.",
-      //   Aliases: []string{"v"},
-      // },
+      &cli.StringFlag{
+        Name: "preview",
+        Usage: "Edit a config file live and see the changes in real time.",
+        Aliases: []string{"v"},
+      },
       &cli.BoolFlag{
         Name: "config-create",
         Usage: "creates a sample a config file",
@@ -75,11 +75,11 @@ func cliActionHandler(cCtx *cli.Context) error {
   config_apply := cCtx.Bool("config-apply")
 
   // ----- for now live preview is disabled until it works properlt
-  // previewConfig := cCtx.String("preview")
-  // if len(previewConfig) != 0 {
-  //   RunLivePreview(previewConfig)
-  // }
-
+  previewConfig := cCtx.String("preview")
+  if len(previewConfig) != 0 {
+    RunLivePreview()
+    // RunLivePreview(previewConfig)
+  }
 
   if outputPath == "" && !config_apply && !config_create {
     log.Fatal("No file output path given.")
