@@ -62,6 +62,7 @@ func newTextarea() textarea.Model {
 	t.KeyMap.DeleteWordBackward.SetEnabled(false)
 	t.KeyMap.LineNext = key.NewBinding(key.WithKeys("down"))
 	t.KeyMap.LinePrevious = key.NewBinding(key.WithKeys("up"))
+	t.CharLimit = 0 
 	t.Blur()
 	return t
 }
@@ -86,10 +87,12 @@ type model struct {
 	focusedPane  int // 0 = left (config), 1 = right (tree)
 	rootPath     string
 	expandedDirs map[string]bool // tracks which dirs are expanded
+	cfgFilePath  string
 }
 
-func newModel() model {
+func newModel(cfgFilePath string) model {
 	m := model{
+		cfgFilePath:  cfgFilePath,
 		help:         help.New(),
 		focusedPane:  0, // start with config panel focused
 		expandedDirs: make(map[string]bool),
@@ -133,6 +136,19 @@ func newModel() model {
 	}
 
 	m.width = 10
+
+	// Read the config file and render that to the user
+	data, err := os.ReadFile(m.cfgFilePath)
+	if err != nil {
+		m.cfg.SetValue("could not read config file, make sure it exists")
+	} else {
+		m.cfg.SetValue(string(data))
+
+		// Temporary fix -- TODO: figure out a better way to do this
+		for range 100 {
+			m.cfg.CursorUp()
+		}
+	}
 
 	return m
 }
@@ -213,7 +229,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *model) sizeInputs() {
-	left := m.width / 3
+	left := m.width / 2
 	m.leftWidth = left
 
 	// Set textarea size (accounting for border and padding)
@@ -273,8 +289,8 @@ func (m model) View() string {
 	return body + "\n" + helpView
 }
 
-func RunLivePreview() {
-	if _, err := tea.NewProgram(newModel(), tea.WithAltScreen()).Run(); err != nil {
+func RunLivePreview(previewConfig string) {
+	if _, err := tea.NewProgram(newModel(previewConfig), tea.WithAltScreen()).Run(); err != nil {
 		// When using alternate screen, print to stderr to ensure visibility.
 		fmt.Fprintln(os.Stderr, "Error while running program:", err)
 		os.Exit(1)
@@ -402,15 +418,19 @@ func (m model) renderTree(width, height int) string {
 			line += "/"
 		}
 
-		// Highlight cursor
-		if i == m.cursor {
-			style := lipgloss.NewStyle().Background(lipgloss.Color("62")).Foreground(lipgloss.Color("230")).Bold(true)
-			line = style.Render(line)
-		}
-
-		// Truncate if too long
+		// Truncate if too long (before styling)
 		if len(line) > width {
 			line = line[:width-3] + "..."
+		}
+
+		// Highlight cursor only when right pane is focused
+		if i == m.cursor && m.focusedPane == 1 {
+			style := lipgloss.NewStyle().
+				Background(lipgloss.Color("62")).
+				Foreground(lipgloss.Color("230")).
+				Bold(true).
+				Width(width)
+			line = style.Render(line)
 		}
 
 		b.WriteString(line + "\n")
