@@ -95,7 +95,7 @@ func cliActionHandler(cCtx *cli.Context) error {
 		fmt.Println("Created fileo.yaml")
 		return nil
 	} else if configApply {
-		if err := ApplyConfig("fileo.yaml"); err != nil {
+		if err := ApplyConfigFromFile("fileo.yaml"); err != nil {
 			return fmt.Errorf("failed to apply config: %w", err)
 		}
 		return nil

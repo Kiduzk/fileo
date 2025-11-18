@@ -14,8 +14,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-var sampleConfig string =
-`# This is a sample config file
+var sampleConfig string = `# This is a sample config file
 
 # Filters out all documents (txt, pdf and docx) which have dates in their names
 folders:
@@ -46,258 +45,280 @@ folders:
     # Puts the word files into their own directory
     - name: "words"
       extensions: ["docx"]
-  ` 
+  `
 
-
- 
 func copyMatchedFiles(fileList []string, outputPath string) error {
-  for _, file := range fileList { 
-    copyFile(file, outputPath)
-  }
-  return nil
+	for _, file := range fileList {
+		copyFile(file, outputPath)
+	}
+	return nil
 }
 
 // This functin organizes file using the name pattern
 // INPUT: pattern -> the regex pattern we want to match
-//      : outputPath -> the path of where we want the new files to be at
+//
+//	: outputPath -> the path of where we want the new files to be at
+//
 // OUTPUT: list of the file names that matched, it does not actually copy them
 func getRegexMatches(regexPattern string) []string {
-  dir, err := os.Getwd()
-  HandleError(err)
+	dir, err := os.Getwd()
+	HandleError(err)
 
-  re := regexp.MustCompile(regexPattern)
+	re := regexp.MustCompile(regexPattern)
 
-  files, err := os.ReadDir(dir)
-  HandleError(err)
+	files, err := os.ReadDir(dir)
+	HandleError(err)
 
-  matched := []string{}
+	matched := []string{}
 
-  for _, file := range files {
+	for _, file := range files {
 
-    if file.IsDir() {
-      continue
-    } 
+		if file.IsDir() {
+			continue
+		}
 
-    // Match the file names with the pattern 
-    r := re.MatchString(file.Name())
-    HandleError(err)
+		// Match the file names with the pattern
+		r := re.MatchString(file.Name())
+		HandleError(err)
 
-    if r {
-      matched = append(matched, file.Name())
-    }
-  }
-  return matched 
+		if r {
+			matched = append(matched, file.Name())
+		}
+	}
+	return matched
 }
 
 // First gets the matches, then copies them over
 func OrganizeFilesByRegex(regexPattern, outputPath string) {
-  matches := getRegexMatches(regexPattern)
-  copyMatchedFiles(matches, outputPath)
+	matches := getRegexMatches(regexPattern)
+	copyMatchedFiles(matches, outputPath)
 }
 
 func OrganizeFilesByRegexRecursive(regexPattern, outputPath string) {
-  matches := getRegexMatchesRecursive(regexPattern)
-  copyMatchedFiles(matches, outputPath)
+	matches := getRegexMatchesRecursive(regexPattern)
+	copyMatchedFiles(matches, outputPath)
 }
 
-
-// TODO: this kind of feels repeated code as the non-recursive version so maybe put them together. But I kind of like that it is repeated since it is more clear for me to understand 
+// TODO: this kind of feels repeated code as the non-recursive version so maybe put them together. But I kind of like that it is repeated since it is more clear for me to understand
 
 // Function to recursively search for a regex pattern
 func getRegexMatchesRecursive(regexPattern string) []string {
-  dir, err := os.Getwd()
-  HandleError(err)
+	dir, err := os.Getwd()
+	HandleError(err)
 
-  matched := []string{}
+	matched := []string{}
 
-  err = fs.WalkDir(os.DirFS(dir), ".", func(path string, d fs.DirEntry, err error) error {
-    HandleError(err)
+	err = fs.WalkDir(os.DirFS(dir), ".", func(path string, d fs.DirEntry, err error) error {
+		HandleError(err)
 
-    // Look at the files and if they match our pattern copy them over to our output path
-    if (!d.IsDir()) {
+		// Look at the files and if they match our pattern copy them over to our output path
+		if !d.IsDir() {
 
-      // Match the file names with the pattern 
-      r, _ := regexp.MatchString(regexPattern, d.Name())
-      if r {
-        matched = append(matched, path)
-      }
-    }
+			// Match the file names with the pattern
+			r, _ := regexp.MatchString(regexPattern, d.Name())
+			if r {
+				matched = append(matched, path)
+			}
+		}
 
-    return nil
+		return nil
 	})
-  HandleError(err)
+	HandleError(err)
 
-  return matched
+	return matched
 }
 
-
 func getExtensionMatches(extension string) []string {
-  return getRegexMatches(".*\\." + extension + "$") 
+	return getRegexMatches(".*\\." + extension + "$")
 }
 
 func getExtensionMatchesRecursive(extension string) []string {
-  return getRegexMatchesRecursive(".*\\." + extension + "$") 
+	return getRegexMatchesRecursive(".*\\." + extension + "$")
 }
 
-// Organizes using file extension. 
+// Organizes using file extension.
 func OrganizeFilesByExtension(outputPath, extension string) {
-  matches := getExtensionMatches(extension)
-  copyMatchedFiles(matches, outputPath)
+	matches := getExtensionMatches(extension)
+	copyMatchedFiles(matches, outputPath)
 }
 
-// Organizes using file extension recursively. 
+// Organizes using file extension recursively.
 func OrganizeFilesByExtensionRecursive(outputPath, extension string) {
-  matches := getExtensionMatchesRecursive(extension)
-  copyMatchedFiles(matches, outputPath)
+	matches := getExtensionMatchesRecursive(extension)
+	copyMatchedFiles(matches, outputPath)
 }
 
 // Copies a source file to the destination folder
 func copyFile(src, dst string) {
-  
-  // Create the destination folder if it does not exist already
-  if _, err := os.Stat(src); !os.IsNotExist(err) {
-    err := os.MkdirAll(dst, os.ModePerm)
-    HandleError(err)
-  }
 
-  data, err := os.ReadFile(src)
-  HandleError(err)
+	// Create the destination folder if it does not exist already
+	if _, err := os.Stat(src); !os.IsNotExist(err) {
+		err := os.MkdirAll(dst, os.ModePerm)
+		HandleError(err)
+	}
 
-  // Get the file name
-  _, fileName := filepath.Split(src)
+	data, err := os.ReadFile(src)
+	HandleError(err)
 
-  // Add the file name to the path
-  fullDstPath := filepath.Join(dst, fileName)
-  os.WriteFile(fullDstPath, data, 0644)
+	// Get the file name
+	_, fileName := filepath.Split(src)
 
-  HandleError(err)    
-  wd, _ := os.Getwd()
-  if false {
-    fmt.Println("the dir rn is",wd, src, dst)
-  }
+	// Add the file name to the path
+	fullDstPath := filepath.Join(dst, fileName)
+	os.WriteFile(fullDstPath, data, 0644)
+
+	HandleError(err)
+	wd, _ := os.Getwd()
+	if false {
+		fmt.Println("the dir rn is", wd, src, dst)
+	}
 }
 
-// Struct for how config should look 
+// Struct for how config should look
 type Folder struct {
-  Name string `yaml:"name"`;
-  Extensions []string `yaml:"extensions"`
-  Patterns []string `yaml:"patterns"`
-  Recurse bool `yaml:"recurse"`
-  ChildFolders []Folder `yaml:"folders"`
+	Name         string   `yaml:"name"`
+	Extensions   []string `yaml:"extensions"`
+	Patterns     []string `yaml:"patterns"`
+	Recurse      bool     `yaml:"recurse"`
+	ChildFolders []Folder `yaml:"folders"`
 }
 
-
-type ConfigData struct{
-  Folders []Folder `yaml:"folders"`
+type ConfigData struct {
+	Folders []Folder `yaml:"folders"`
 }
 
+// Takes in a config text input and outputs a list of strings that match the config file
+func ApplyConfig(yamlFile []byte) []string {
 
-// Now , we will create a function to read the config file recursively and apply the desired structure
-func ApplyConfig(fileName string) error {
-  yamlFile, err := os.ReadFile(fileName)
-  HandleError(err)
+	var data ConfigData
+	err := yaml.Unmarshal(yamlFile, &data)
+	HandleError(err)
 
-  var data ConfigData 
+	// ensuring the config is valid
+	if data.Folders == nil {
+		HandleError(errors.New("make sure your config has a folders directory"))
+	}
 
-  err = yaml.Unmarshal(yamlFile, &data)
-  HandleError(err)
-  
-  // Ensuring the config is valid
-  if data.Folders == nil {
-    return errors.New("Make sure your config has a folders directory")
-  }
-
-  // we enter here, there must always be a folders key in the yaml files
-  applyConfigRecurse("", data.Folders, []string{}, true)
-  return nil
+	// we enter here, there must always be a folders key in the yaml files
+	return applyConfigRecurse("", data.Folders, []string{}, true, false)
 }
 
+// ApplyConfigPreview returns destination paths for preview (where files will be organized to)
+func ApplyConfigPreview(yamlFile []byte) []string {
+	var data ConfigData
+	err := yaml.Unmarshal(yamlFile, &data)
+	if err != nil {
+		return []string{}
+	}
+
+	if data.Folders == nil {
+		return []string{}
+	}
+
+	return applyConfigRecurse("", data.Folders, []string{}, true, true)
+}
+
+// A function to read the config file recursively and apply the desired structure
+func ApplyConfigFromFile(fileName string) error {
+	yamlFile, err := os.ReadFile(fileName)
+	HandleError(err)
+	ApplyConfig(yamlFile)
+	return nil
+}
 
 // NOTE: General behavior now: if the user specifies a folder within a folder in the config file,
 // then the inner folder will only match the files from the ones that matched with the parent file.
-// NOTE: also, if a file matches in multiple patterns, the default behavior will create a copy of a file for each match. 
+// NOTE: also, if a file matches in multiple patterns, the default behavior will create a copy of a file for each match.
 // (both the above can be modified but thats the current implementation)
-func applyConfigRecurse(parentDir string, folders []Folder, parentMatches []string, firstRun bool) []string {
-  currTotalMatches := []string{}
+func applyConfigRecurse(parentDir string, folders []Folder, parentMatches []string, firstRun bool, preview bool) []string {
+	currTotalMatches := []string{}
 
-  for _, folder := range folders {
-    
-    extensionMatches := []string{}
-    patternMatches := []string{}
+	for _, folder := range folders {
 
-    // Handle the extensions
-    for _, extension := range folder.Extensions {
-      if folder.Recurse {
-        extensionMatches = append(extensionMatches, getExtensionMatchesRecursive(extension)...)
-      } else {
-        extensionMatches = append(extensionMatches, getExtensionMatches(extension)...) 
-      }
-    }
+		extensionMatches := []string{}
+		patternMatches := []string{}
 
-    for _, pattern := range folder.Patterns {
-      if folder.Recurse {
-        patternMatches = append(patternMatches, getRegexMatchesRecursive(pattern)...)
-      } else {
-        patternMatches = append(patternMatches, getRegexMatches(pattern)...) 
-      }
-    }
+		// Handle the extensions
+		for _, extension := range folder.Extensions {
+			if folder.Recurse {
+				extensionMatches = append(extensionMatches, getExtensionMatchesRecursive(extension)...)
+			} else {
+				extensionMatches = append(extensionMatches, getExtensionMatches(extension)...)
+			}
+		}
 
-    // TODO: this part could use some work 
-    currMatches := []string{}
-    for _, patternMatch := range patternMatches {
-      if slices.Contains(extensionMatches, patternMatch) {
-        currMatches = append(currMatches, patternMatch)
-      }
-    }
+		for _, pattern := range folder.Patterns {
+			if folder.Recurse {
+				patternMatches = append(patternMatches, getRegexMatchesRecursive(pattern)...)
+			} else {
+				patternMatches = append(patternMatches, getRegexMatches(pattern)...)
+			}
+		}
 
-    if len(folder.Extensions) == 0 {
-      currMatches = patternMatches
-    }
+		// TODO: this part could use some work
+		currMatches := []string{}
+		for _, patternMatch := range patternMatches {
+			if slices.Contains(extensionMatches, patternMatch) {
+				currMatches = append(currMatches, patternMatch)
+			}
+		}
 
-    if len(folder.Patterns) == 0 {
-      currMatches = extensionMatches
-    }
+		if len(folder.Extensions) == 0 {
+			currMatches = patternMatches
+		}
 
-    // Look through only the parent matches
-    matchesParentCommon := []string{}
-    if !firstRun {
-      for _, item1 := range currMatches {
-        if slices.Contains(parentMatches, item1) {
-          matchesParentCommon = append(matchesParentCommon, item1)
-        }
-      } 
-    } else {
-      matchesParentCommon = currMatches 
-    }
+		if len(folder.Patterns) == 0 {
+			currMatches = extensionMatches
+		}
 
-    newPath := path.Join(parentDir, folder.Name)
+		// Look through only the parent matches
+		matchesParentCommon := []string{}
+		if !firstRun {
+			for _, item1 := range currMatches {
+				if slices.Contains(parentMatches, item1) {
+					matchesParentCommon = append(matchesParentCommon, item1)
+				}
+			}
+		} else {
+			matchesParentCommon = currMatches
+		}
 
-    // If a file has been covered by a subfolder, just skip it 
-    matches := []string{}
-    if len(folder.ChildFolders) == 0 {
-      matches = matchesParentCommon
-    } else {
-      childrenMatches := applyConfigRecurse(newPath, folder.ChildFolders, matchesParentCommon, false)
-      currTotalMatches = append(currTotalMatches, childrenMatches...)
+		newPath := path.Join(parentDir, folder.Name)
 
-      for _, match := range matchesParentCommon {
-        if !slices.Contains(childrenMatches, match) {
-          matches = append(matches, match)
-        }
-      }
-    }
+		// If a file has been covered by a subfolder, just skip it
+		matches := []string{}
+		if len(folder.ChildFolders) == 0 {
+			matches = matchesParentCommon
+		} else {
+			childrenMatches := applyConfigRecurse(newPath, folder.ChildFolders, matchesParentCommon, false, preview)
+			currTotalMatches = append(currTotalMatches, childrenMatches...)
 
-    copyMatchedFiles(matches, newPath) 
-    currTotalMatches = append(currTotalMatches, matches...)
-  }
+			for _, match := range matchesParentCommon {
+				if !slices.Contains(childrenMatches, match) {
+					matches = append(matches, match)
+				}
+			}
+		}
 
-  return currTotalMatches 
+		if preview {
+			// Convert source paths to destination paths
+			for _, match := range matches {
+				destPath := path.Join(newPath, filepath.Base(match))
+				currTotalMatches = append(currTotalMatches, destPath)
+			}
+		} else {
+			// Copy files and return source paths
+			copyMatchedFiles(matches, newPath)
+			currTotalMatches = append(currTotalMatches, matches...)
+		}
+	}
+
+	return currTotalMatches
 }
-
 
 // General error handler function
 func HandleError(err error) {
-  if err != nil {
-    log.Fatal(err)
-  }
+	if err != nil {
+		log.Fatal(err)
+	}
 }

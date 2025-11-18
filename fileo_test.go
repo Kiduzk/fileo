@@ -168,32 +168,32 @@ func TestApplyConfig(t *testing.T) {
   err := os.WriteFile("test_config.yaml", []byte(sampleConfig), os.ModePerm)
   HandleError(err)
 
-  err = ApplyConfig("test_config.yaml")
+  err = ApplyConfigFromFile("test_config.yaml")
   HandleError(err)
 
 
   documentsFiles, err := os.ReadDir("documents")
   HandleError(err)
   if len(documentsFiles) != 2 {
-    t.Errorf("ApplyConfig not working. Number of files in 'documents' does not match what was expected: %d != 2", len(documentsFiles))
+    t.Errorf("ApplyConfigFromFile not working. Number of files in 'documents' does not match what was expected: %d != 2", len(documentsFiles))
   }
 
   codeFiles, err := os.ReadDir("code")
   HandleError(err)
   if len(codeFiles) != 3 {
-    t.Errorf("ApplyConfig not working. Number of files in 'code' does not match what was expected: %d != 3", len(codeFiles))
+    t.Errorf("ApplyConfigFromFile not working. Number of files in 'code' does not match what was expected: %d != 3", len(codeFiles))
   }
 
   onlyPythonFiles, err := os.ReadDir("code/only_python")
   HandleError(err)
   if len(onlyPythonFiles) != 1 {
-    t.Errorf("ApplyConfig not working. Number of files in 'code' does not match what was expected: %d != 1", len(codeFiles))
+    t.Errorf("ApplyConfigFromFile not working. Number of files in 'code' does not match what was expected: %d != 1", len(codeFiles))
   }
 
   broadDocuments, err := os.ReadDir("broad_documents/all_documents")
   HandleError(err)
   if len(broadDocuments) != 10 {
-    t.Errorf("ApplyConfig not working. Number of files in 'broad_documents' does not match what was expected: %d != 10", len(broadDocuments))
+    t.Errorf("ApplyConfigFromFile not working. Number of files in 'broad_documents' does not match what was expected: %d != 10", len(broadDocuments))
   }
 
 
@@ -233,9 +233,9 @@ func TestCopyFile(t *testing.T) {
 func pathExists(t *testing.T, pathName string) {
   if _, err := os.Stat(path.Join(tempDir, pathName)); err != nil {
     if errors.Is(err, os.ErrNotExist) {
-      t.Errorf("ApplyConfig not working. Error creating folder/file: %s", pathName)
+      t.Errorf("ApplyConfigFromFile not working. Error creating folder/file: %s", pathName)
     } else {
-      t.Error("ApplyConfig not working. Folder/file created, but not able to access it")
+      t.Error("ApplyConfigFromFile not working. Folder/file created, but not able to access it")
     }
   } 
 

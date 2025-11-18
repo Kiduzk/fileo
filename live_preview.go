@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/help"
@@ -62,7 +61,7 @@ func newTextarea() textarea.Model {
 	t.KeyMap.DeleteWordBackward.SetEnabled(false)
 	t.KeyMap.LineNext = key.NewBinding(key.WithKeys("down"))
 	t.KeyMap.LinePrevious = key.NewBinding(key.WithKeys("up"))
-	t.CharLimit = 0 
+	t.CharLimit = 0
 	t.Blur()
 	return t
 }
@@ -73,6 +72,7 @@ type treeItem struct {
 	isDir    bool
 	expanded bool
 	depth    int
+	children []treeItem
 }
 
 type model struct {
@@ -82,7 +82,8 @@ type model struct {
 	help         help.Model
 	cfg          textarea.Model // left panel: command / yaml config
 	treeItems    []treeItem     // flattened tree for navigation
-	cursor       int            // selected item in tree
+	treeItemRoot treeItem
+	cursor       int // selected item in tree
 	leftWidth    int
 	focusedPane  int // 0 = left (config), 1 = right (tree)
 	rootPath     string
@@ -128,13 +129,6 @@ func newModel(cfgFilePath string) model {
 	m.cfg = newTextarea()
 	m.cfg.Placeholder = "Enter YAML config here"
 	m.cfg.Focus()
-
-	// initial tree from cwd
-	if wd, err := os.Getwd(); err == nil {
-		m.rootPath = wd
-		m.buildTree()
-	}
-
 	m.width = 10
 
 	// Read the config file and render that to the user
@@ -149,6 +143,15 @@ func newModel(cfgFilePath string) model {
 			m.cfg.CursorUp()
 		}
 	}
+
+	// initial tree from cwd
+	if wd, err := os.Getwd(); err == nil {
+		m.rootPath = wd
+		m.buildTree()
+	}
+
+	// Apply the config to the current directory and save it as map
+	// The map has directory and its keys are what are subdirector
 
 	return m
 }
@@ -321,9 +324,19 @@ func (m *model) buildTree() {
 		depth:    0,
 	})
 
+	// Initialize treeItemRoot
+	m.treeItemRoot = m.treeItems[0]
+
 	// Only recurse if root is expanded
 	if rootExpanded {
-		m.buildTreeRecursive(m.rootPath, 0)
+
+		// First, we build the tree using destination paths
+		for _, destPath := range ApplyConfigPreview([]byte(m.cfg.Value())) {
+			m.buildTreeRecursive(destPath)
+		}
+
+		// Then we populate tree items accordingly
+		m.populateTreeUIRecursive(m.treeItemRoot)
 	}
 
 	// Ensure cursor is in bounds
@@ -335,42 +348,82 @@ func (m *model) buildTree() {
 	}
 }
 
-func (m *model) buildTreeRecursive(path string, depth int) {
-	// Don't go too deep
-	if depth >= 5 {
-		return
+// Given a string path we decompose it into its constituents using the path separator and then
+// add a tree item in to our directory
+func (m *model) buildTreeRecursive(path string) {
+
+	// Convert path separators to forward slashes for consistent splitting
+	path = filepath.ToSlash(path)
+	paths := strings.Split(path, "/")
+
+	parentItem := &m.treeItemRoot
+	for depth, childPath := range paths {
+		if childPath == "" {
+			continue
+		}
+
+		childFullPath := filepath.Join(parentItem.path, childPath)
+
+		// Check if child already exists
+		var existingChild *treeItem
+		for i := range parentItem.children {
+			if parentItem.children[i].name == childPath {
+				existingChild = &parentItem.children[i]
+				break
+			}
+		}
+
+		if existingChild != nil {
+			parentItem = existingChild
+		} else {
+			// For preview mode, check if file exists. If not, assume it's a directory
+			// unless it's the last segment (which would be the file)
+			isLastSegment := depth == len(paths)-1
+			info, _ := os.Stat(childFullPath)
+			
+			var isDir bool
+			if info != nil {
+				isDir = info.IsDir()
+			} else {
+				// Virtual path (doesn't exist yet) - assume directories for all but last segment
+				isDir = !isLastSegment
+			}
+
+			childItem := treeItem{
+				name:     childPath,
+				path:     childFullPath,
+				isDir:    isDir,
+				expanded: m.expandedDirs[childFullPath],
+				children: []treeItem{},
+				depth:    depth + 1,
+			}
+
+			parentItem.children = append(parentItem.children, childItem)
+			parentItem = &parentItem.children[len(parentItem.children)-1]
+		}
 	}
 
-	entries, err := os.ReadDir(path)
-	if err != nil {
-		return
-	}
+}
 
-	// Sort entries
-	sort.Slice(entries, func(i, j int) bool {
-		// Directories first, then alphabetically
-		if entries[i].IsDir() != entries[j].IsDir() {
-			return entries[i].IsDir()
+// We populate the flat tree directory using the generated tree. This is called after tree is built
+func (m *model) populateTreeUIRecursive(item treeItem) {
+	for _, child := range item.children {
+
+		// Check if child path already exists in treeItems
+		found := false
+		for _, existing := range m.treeItems {
+			if existing.path == child.path {
+				found = true
+				break
+			}
 		}
-		return entries[i].Name() < entries[j].Name()
-	})
 
-	for _, e := range entries {
-		fullPath := filepath.Join(path, e.Name())
-		isExpanded := m.expandedDirs[fullPath]
-
-		item := treeItem{
-			path:     fullPath,
-			name:     e.Name(),
-			isDir:    e.IsDir(),
-			expanded: isExpanded,
-			depth:    depth + 1,
+		if !found {
+			m.treeItems = append(m.treeItems, child)
 		}
-		m.treeItems = append(m.treeItems, item)
 
-		// Recurse if directory and expanded
-		if e.IsDir() && isExpanded {
-			m.buildTreeRecursive(fullPath, depth+1)
+		if child.isDir && child.expanded {
+			m.populateTreeUIRecursive(child)
 		}
 	}
 }
