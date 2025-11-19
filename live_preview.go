@@ -24,6 +24,13 @@ var (
 			Background(lipgloss.Color("57")).
 			Foreground(lipgloss.Color("230"))
 
+	selectedTreeBgColor  = lipgloss.Color("57")
+	focusedBorderColor   = lipgloss.Color("62")
+	unfocusedBorderColor = lipgloss.Color("240")
+	panelBaseStyle       = lipgloss.NewStyle().
+				Border(lipgloss.RoundedBorder()).
+				Padding(0, 1)
+
 	placeholderStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("238"))
 
@@ -34,8 +41,7 @@ var (
 				Foreground(lipgloss.Color("99"))
 
 	focusedBorderStyle = lipgloss.NewStyle().
-				Border(lipgloss.RoundedBorder()).
-				BorderForeground(lipgloss.Color("238"))
+				Border(lipgloss.HiddenBorder())
 
 	blurredBorderStyle = lipgloss.NewStyle().
 				Border(lipgloss.HiddenBorder())
@@ -252,44 +258,48 @@ func (m model) View() string {
 		m.keymap.refresh,
 		m.keymap.quit,
 	})
+	helpView = lipgloss.PlaceHorizontal(m.width, lipgloss.Center, helpView)
 
-	// Calculate dimensions
 	leftWidth := m.leftWidth
-	previewWidth := m.width - leftWidth - 4 // account for borders
-	panelHeight := m.height - helpHeight - 2
+	previewWidth := m.width - leftWidth - 4
+	panelHeight := m.height - helpHeight - 1
 
-	// Left panel with config textarea
-	leftBorderColor := lipgloss.Color("240")
+	leftBorderColor := unfocusedBorderColor
 	if m.focusedPane == 0 {
-		leftBorderColor = lipgloss.Color("62") // bright when focused
+		leftBorderColor = focusedBorderColor
 	}
-	leftStyle := lipgloss.NewStyle().
+	leftStyle := panelBaseStyle.
 		Width(leftWidth).
 		Height(panelHeight).
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(leftBorderColor).
-		Padding(0, 1)
+		BorderForeground(leftBorderColor)
 
 	leftPanel := leftStyle.Render(m.cfg.View())
 
-	// Right panel with tree
-	rightBorderColor := lipgloss.Color("240")
+	rightBorderColor := unfocusedBorderColor
 	if m.focusedPane == 1 {
-		rightBorderColor = lipgloss.Color("62") // bright when focused
+		rightBorderColor = focusedBorderColor
 	}
-	rightStyle := lipgloss.NewStyle().
+	rightStyle := panelBaseStyle.
 		Width(previewWidth).
 		Height(panelHeight).
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(rightBorderColor).
-		Padding(0, 1)
+		BorderForeground(rightBorderColor). 
+		Padding(1). 
+		PaddingLeft(2)
 
-	treeView := m.renderTree(previewWidth-4, panelHeight-2)
+	treeWidth := previewWidth - 2
+	treeHeight := panelHeight - 2
+
+	treeView := m.renderTree(treeWidth, treeHeight)
 	rightPanel := rightStyle.Render(treeView)
 
 	body := lipgloss.JoinHorizontal(lipgloss.Top, leftPanel, rightPanel)
 
-	return body + "\n" + helpView
+	header := lipgloss.JoinHorizontal(lipgloss.Top,
+		lipgloss.NewStyle().Width(leftWidth).Align(lipgloss.Left).PaddingLeft(1).Render("Config text"),
+		lipgloss.NewStyle().Width(previewWidth).Align(lipgloss.Left).PaddingLeft(3).Render("Directory Preview"),
+	)
+
+	return header + "\n" + body + "\n" + helpView
 }
 
 func RunLivePreview(previewConfig string) {
@@ -380,7 +390,7 @@ func (m *model) buildTreeRecursive(path string) {
 			// unless it's the last segment (which would be the file)
 			isLastSegment := depth == len(paths)-1
 			info, _ := os.Stat(childFullPath)
-			
+
 			var isDir bool
 			if info != nil {
 				isDir = info.IsDir()
@@ -472,14 +482,19 @@ func (m model) renderTree(width, height int) string {
 		}
 
 		// Truncate if too long (before styling)
-		if len(line) > width {
+		if width > 3 && len(line) > width {
 			line = line[:width-3] + "..."
+		} else if width <= 3 && len(line) > width {
+			if width < 1 {
+				width = 1
+			}
+			line = line[:width]
 		}
 
 		// Highlight cursor only when right pane is focused
 		if i == m.cursor && m.focusedPane == 1 {
 			style := lipgloss.NewStyle().
-				Background(lipgloss.Color("62")).
+				Background(selectedTreeBgColor).
 				Foreground(lipgloss.Color("230")).
 				Bold(true).
 				Width(width)
