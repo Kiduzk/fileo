@@ -6,10 +6,8 @@ import (
 	"io/fs"
 	"log"
 	"os"
-	"path"
 	"path/filepath"
 	"regexp"
-	"slices"
 
 	"gopkg.in/yaml.v3"
 )
@@ -134,6 +132,7 @@ func OrganizeFilesByExtensionRecursive(outputPath, extension string) {
 }
 
 // Copies a source file to the destination folder
+// TODO: confict copy handling
 func copyFile(src, dst string) {
 
 	// Create the destination folder if it does not exist already
@@ -170,7 +169,7 @@ type Rules struct {
 
 type ConfigData struct {
 	FolderRules []Rules `yaml:"rules"`
-	Recurse    bool `yaml:"recurse"`
+	Recurse     bool    `yaml:"recurse"`
 }
 
 // Takes in a config text input and outputs a list of strings that match the config file
@@ -184,23 +183,22 @@ func ApplyConfig(yamlFile []byte) {
 	if config.FolderRules == nil {
 		HandleError(errors.New("make sure your config has a folders directory"))
 	}
-	
-	applyConfigNewwww(config, ".", config.Recurse)
+
+	applyConfig(config, ".", config.Recurse, false)
 }
 
 // ApplyConfigPreview returns destination paths for preview (where files will be organized to)
 func ApplyConfigPreview(yamlFile []byte) []string {
-	var data ConfigData
-	err := yaml.Unmarshal(yamlFile, &data)
+	var config ConfigData
+	err := yaml.Unmarshal(yamlFile, &config)
 	if err != nil {
 		return []string{}
 	}
 
-	if data.FolderRules == nil {
+	if config.FolderRules == nil {
 		return []string{}
 	}
-
-	return applyConfigRecurse("", data.FolderRules, []string{}, true, true)
+	return applyConfig(config, ".", true, true)
 }
 
 // A function to read the config file recursively and apply the desired structure
@@ -214,23 +212,23 @@ func ApplyConfigFromFile(fileName string) error {
 // Given a regex pattern, a slice of file entries and a slice of boolean list of whether a file has already
 // been matched, it returns a new slice of filenames that are valid
 // It can also be used for extension matching with the flag matchExtension
-func filterFilesBasedOnRegex(pattern string, files []fs.DirEntry, isFileMatched *[]bool) []fs.DirEntry {
+func filterFilesBasedOnRegex(pattern string, files []string, isFileMatched []bool) []string {
 
 	re := regexp.MustCompile(pattern)
-	matches := []fs.DirEntry{}
+	matches := []string{}
 
 	for i, file := range files {
 
-		// If file has already been matchced, skip it
-		if (*isFileMatched)[i] {
+		// If file has already been matched, skip it
+		if isFileMatched[i] {
 			continue
 		}
 
-		r := re.MatchString(file.Name())
+		r := re.MatchString(file)
 
 		if r {
 			matches = append(matches, file)
-			(*isFileMatched)[i] = true
+			isFileMatched[i] = true
 		}
 	}
 
@@ -240,8 +238,8 @@ func filterFilesBasedOnRegex(pattern string, files []fs.DirEntry, isFileMatched 
 // Recursively goes through a directory and returns all of the files. If flag for recursion is false
 // then it does not look into directories
 // It excludes hidden folders and files
-func getAllFiles(dir string, recursive bool) []fs.DirEntry {
-	allFiles := []fs.DirEntry{}
+func getAllFiles(dir string, recursive bool) []string {
+	allFiles := []string{}
 	err := fs.WalkDir(os.DirFS(dir), ".", func(path string, d fs.DirEntry, err error) error {
 		HandleError(err)
 
@@ -260,9 +258,11 @@ func getAllFiles(dir string, recursive bool) []fs.DirEntry {
 			return nil
 		}
 
-		// Add the file
+		// Add the file with full path
 		if !d.IsDir() {
-			allFiles = append(allFiles, d)
+			// Create a custom DirEntry that includes the full path
+			fullPath := filepath.Join(dir, path)
+			allFiles = append(allFiles, fullPath)
 		}
 
 		return nil
@@ -277,7 +277,7 @@ func getAllFiles(dir string, recursive bool) []fs.DirEntry {
 // 2) For each rule, uses that rule to match files. Then for all matched files, move/copy them over
 // 3) Remove the used/matched folders
 // 4) Use catch all to place the remaining
-func applyConfigNew(config ConfigData, parentDir string, recursive bool) {
+func applyConfig(config ConfigData, parentDir string, recursive, preview bool) []string {
 
 	// Get all files in this directory
 	allFiles := getAllFiles(parentDir, recursive)
@@ -289,126 +289,55 @@ func applyConfigNew(config ConfigData, parentDir string, recursive bool) {
 	// then it can not be matched to any other place again
 	isFileMatched := make([]bool, len(allFiles))
 
-	for i, rule := range config.FolderRules {
+	// List of 2 element lists, the filepath and destination path respectively
+	matchedFiles := [][2]string{}
 
-		ruleMatches := []fs.DirEntry{}
+	for _, rule := range config.FolderRules {
 
-		// Ignore matched files. Can be changed later or made to some flag
-		if isFileMatched[i] {
-			continue
-		}
+		ruleMatches := []string{}
 
 		// Regex matches
 		for _, pattern := range rule.Patterns {
-			matches := filterFilesBasedOnRegex(pattern, allFiles, &isFileMatched)
+			matches := filterFilesBasedOnRegex(pattern, allFiles, isFileMatched)
 			ruleMatches = append(ruleMatches, matches...)
 		}
 
 		// Extension matches
 		for _, extension := range rule.Extensions {
 			pattern := extensionToRegex(extension)
-			matches := filterFilesBasedOnRegex(pattern, allFiles, &isFileMatched)
+			matches := filterFilesBasedOnRegex(pattern, allFiles, isFileMatched)
 			ruleMatches = append(ruleMatches, matches...)
 		}
 
-		// Copy over all the matched files
-		ruleMatchesString := []string{}
-		for _, rule := range ruleMatches {
-			ruleMatchesString = append(ruleMatchesString, rule.Name())
-		}
-
-		copyMatchedFiles(ruleMatchesString, rule.TargetPath)
-	}
-}
-
-// NOTE: General behavior now: if the user specifies a folder within a folder in the config file,
-// then the inner folder will only match the files from the ones that matched with the parent file.
-// NOTE: also, if a file matches in multiple patterns, the default behavior will create a copy of a file for each match.
-// (both the above can be modified but thats the current implementation)
-func applyConfigRecurse(parentDir string, folders []Rules, parentMatches []string, firstRun bool, preview bool) []string {
-	currTotalMatches := []string{}
-
-	for _, folder := range folders {
-
-		extensionMatches := []string{}
-		patternMatches := []string{}
-
-		// Handle the extensions
-		for _, extension := range folder.Extensions {
-			if folder.Recurse {
-				extensionMatches = append(extensionMatches, getExtensionMatchesRecursive(extension)...)
-			} else {
-				extensionMatches = append(extensionMatches, getExtensionMatches(extension)...)
-			}
-		}
-
-		for _, pattern := range folder.Patterns {
-			if folder.Recurse {
-				patternMatches = append(patternMatches, getRegexMatchesRecursive(pattern)...)
-			} else {
-				patternMatches = append(patternMatches, getRegexMatches(pattern)...)
-			}
-		}
-
-		// TODO: this part could use some work
-		currMatches := []string{}
-		for _, patternMatch := range patternMatches {
-			if slices.Contains(extensionMatches, patternMatch) {
-				currMatches = append(currMatches, patternMatch)
-			}
-		}
-
-		if len(folder.Extensions) == 0 {
-			currMatches = patternMatches
-		}
-
-		if len(folder.Patterns) == 0 {
-			currMatches = extensionMatches
-		}
-
-		// Look through only the parent matches
-		matchesParentCommon := []string{}
-		if !firstRun {
-			for _, item1 := range currMatches {
-				if slices.Contains(parentMatches, item1) {
-					matchesParentCommon = append(matchesParentCommon, item1)
-				}
-			}
-		} else {
-			matchesParentCommon = currMatches
-		}
-
-		newPath := path.Join(parentDir, folder.TargetPath)
-
-		// If a file has been covered by a subfolder, just skip it
-		matches := []string{}
-		if len(folder.ChildFolders) == 0 {
-			matches = matchesParentCommon
-		} else {
-			childrenMatches := applyConfigRecurse(newPath, folder.ChildFolders, matchesParentCommon, false, preview)
-			currTotalMatches = append(currTotalMatches, childrenMatches...)
-
-			for _, match := range matchesParentCommon {
-				if !slices.Contains(childrenMatches, match) {
-					matches = append(matches, match)
-				}
-			}
-		}
-
-		if preview {
-			// Convert source paths to destination paths
-			for _, match := range matches {
-				destPath := path.Join(newPath, filepath.Base(match))
-				currTotalMatches = append(currTotalMatches, destPath)
-			}
-		} else {
-			// Copy files and return source paths
-			copyMatchedFiles(matches, newPath)
-			currTotalMatches = append(currTotalMatches, matches...)
+		// Add each match into the matched files along with its source and target directories
+		for _, file := range ruleMatches {
+			matchedFiles = append(matchedFiles, [2]string{filepath.Clean(file), filepath.Clean(rule.TargetPath)})
 		}
 	}
 
-	return currTotalMatches
+	// Go through the files and enforce that matches should be scoped by their parents
+	// TODO
+
+
+	// If the call was for a live-run we copy over the directories
+	if !preview {
+		for _, fileNameAndPath := range matchedFiles {
+			copyFile(filepath.Base(fileNameAndPath[0]), fileNameAndPath[1])
+		}
+	}
+
+	// Return the list of full paths, useful for preview
+	fullPathNames := make([]string, len(matchedFiles))
+	for i, fileNameAndPath := range matchedFiles {
+		fullPath := filepath.Join(fileNameAndPath[1], filepath.Base(fileNameAndPath[0]))
+		fullPathNames[i] = fullPath
+	}
+
+	// for _, x := range fullPathNames {
+	// 	fmt.Println(x)
+	// }
+
+	return fullPathNames
 }
 
 // General error handler function
