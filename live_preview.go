@@ -144,7 +144,7 @@ func newModel(cfgFilePath string) model {
 	} else {
 		m.cfg.SetValue(string(data))
 
-		// Temporary fix -- TODO: figure out a better way to do this
+		// Temporary fix -- TODO: bubbletea v2 has this exposed, change when v2 comes out
 		for range 100 {
 			m.cfg.CursorUp()
 		}
@@ -282,8 +282,8 @@ func (m model) View() string {
 	rightStyle := panelBaseStyle.
 		Width(previewWidth).
 		Height(panelHeight).
-		BorderForeground(rightBorderColor). 
-		Padding(1). 
+		BorderForeground(rightBorderColor).
+		Padding(1).
 		PaddingLeft(2)
 
 	treeWidth := previewWidth - 2
